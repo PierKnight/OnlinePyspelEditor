@@ -5,10 +5,16 @@
 import glob
 import shutil
 import subprocess
+from threading import RLock
 
+
+
+
+        
 
 sandBoxPath = "/var/local/lib/isolate/"
 
+sandboxMapLock = RLock()
 sandboxMap = {}
 
 def init():
@@ -19,7 +25,9 @@ def init():
 
 
 def cleanSandbox(id : int):
-    shutil.rmtree(f"{sandBoxPath}{id}")
+    with sandboxMapLock:
+        shutil.rmtree(f"{sandBoxPath}{id}")
+        sandboxMap.pop(id)
 
 
 def runCode(id : int,sourceCode: str):
@@ -29,19 +37,18 @@ def runCode(id : int,sourceCode: str):
 
 def initSandbox() -> int:
 
+    with sandboxMapLock:
+        try:
+            result = subprocess.run(["isolate","-b",str(len(sandboxMap)),"--init"],capture_output=True,text=True)
+            if(len(result.stderr) != 0):
+                raise subprocess.CalledProcessError(1,"")
+            
+            id = int(result.stdout.split("/")[-1])
+            sandboxMap[id] = ""
 
+            return id
+        except subprocess.CalledProcessError:
+            print("Failed to start sandbox")
 
-    try:
-        result = subprocess.run(["isolate","-b",str(len(sandboxMap)),"--init"],capture_output=True,text=True)
-        if(len(result.stderr) != 0):
-            raise subprocess.CalledProcessError(1,"")
-        
-        id = int(result.stdout.split("/")[-1])
-        sandboxMap[id] = ""
-
-        return id
-    except subprocess.CalledProcessError:
-        print("Failed to start sandbox")
-
-    return -1
+        return -1
 
