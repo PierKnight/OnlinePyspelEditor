@@ -2,6 +2,7 @@ import {Server, Socket} from 'socket.io';
 import * as sandbox from "./sandbox.js"
 import { Server as HttpServer } from 'node:http';
 import { ProcessJob } from './sandbox.js';
+import { CodeRequest, JobResponse, KillResponse, PipCommand, PipRequest, isSomeEnum, validatePipRequest } from './model.js';
 
 
 interface RequestJob<T>
@@ -19,13 +20,16 @@ sandboxJobs.set("codeRequest",{run: (socket : UserSocket, request: CodeRequest, 
 })
 
 sandboxJobs.set("pipRequest",{run: (socket : UserSocket, request: PipRequest, callback) => {
-    if(request.command != PipCommand.install)
+    try {
+        validatePipRequest(request)
+    }
+    catch(error : any)
     {
-        callback({code: 1,message: "FUCK"})
+        callback({code: 1,message: error.message})
         return null;
     }
     return new ProcessJob(() => 
-        sandbox.runPipCommand(socket.sandbox,request.command.toString(),request.args,(data) => sendToStout(socket,data),(code) => {callback({code: code})}))
+        sandbox.runPipCommand(socket.sandbox,request,(data) => sendToStout(socket,data),(code) => {callback({code: code})}))
     }
 })
 
@@ -96,32 +100,3 @@ function sendToStout(socket: UserSocket,data: string)
     socket.emit("stout", data)
 }
 
-
-interface KillResponse
-{
-    message: string
-    success: boolean
-}
-
-interface CodeRequest
-{
-    sourceCode: string
-}
-
-export interface JobResponse
-{
-    message?: string
-    code?: number
-}
-
-interface PipRequest
-{
-    command: PipCommand
-    args: string[]
-}
-
-enum PipCommand
-{
-    install,
-    uninstall
-}

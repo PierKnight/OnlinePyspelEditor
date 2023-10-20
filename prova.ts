@@ -3,6 +3,8 @@ import cors from "cors"
 import * as sandbox from "./sandbox.js"
 import * as socket from "./socket.js"
 import {createServer} from 'node:http';
+import { PipRequest, PipCommand, isSomeEnum } from './model.js';
+
 
 
 const serverPort = 5000

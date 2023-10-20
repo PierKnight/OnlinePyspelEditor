@@ -3,6 +3,7 @@ import fs from "fs-extra"
 import { randomBytes } from "crypto"
 import { UserSocket } from "./socket"
 import treeKill from "tree-kill"
+import { PipCommand, PipRequest } from "./model"
 
 
 const sanBoxes = new Map()
@@ -57,18 +58,14 @@ export function initSandbox(
 
 export function runSandboxCode(sandbox : Sandbox, sourceCode : string,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
-  console.log(sourceCode)
   fs.writeFileSync(`${isolatePath}/${sandbox.id}/box/main.py`,sourceCode)
   return executeProcess(`isolate -b ${sandbox.id} --cg --dir=/etc --share-net -p --run -- /bin/python3 -u main.py`,stdout,stop)
 }
 
-export function runPipCommand(sandbox : Sandbox,command: string, args: string[],stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
+export function runPipCommand(sandbox : Sandbox,pipRequest: PipRequest,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
-
-  if(args[0] === "uninstall")
-    args.push("-y")
-
-  return executeProcess(`isolate -b ${sandbox.id} --cg --dir=/etc --share-net -p --run -- /usr/bin/pip`, stdout,stop,[...args])
+  const confirmAttribute = pipRequest.command === PipCommand.UNINSTALL ? "-y" : ""
+  return executeProcess(`isolate -b ${sandbox.id} --cg --dir=/etc --share-net -p --run -- /usr/bin/pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
 }
 
 
