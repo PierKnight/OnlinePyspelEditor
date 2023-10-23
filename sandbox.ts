@@ -1,43 +1,70 @@
 import {ChildProcessWithoutNullStreams, exec,execSync,spawn} from "child_process"
 import fs from "fs-extra"
-import { randomBytes } from "crypto"
+import { randomBytes, randomInt } from "crypto"
 import { UserSocket } from "./socket"
 import treeKill from "tree-kill"
 import { PipCommand, PipRequest } from "./model"
+import * as database from "./database"
 
 
-const sanBoxes = new Map()
-const isolatePath = "/isolate"
+export const isolatePath = "/isolate"
 
 
 export function init()
 {
   console.log("Sandbox Cleanup")
-  fs.emptyDirSync(isolatePath)
+  database.cleanupTemporarySandboxes()
 }
 
 function generateRandomId() : string
 {
-  const bytes = randomBytes(64)
+  const bytes = randomBytes(32)
   const token = bytes.toString('hex');
   return token;
 }
 
-export function initSandbox(
-  socket: UserSocket,
-  onComplete : (sandbox: Sandbox) => void,
-  pyrightData : (json: string) => void)
+async function getNewSandboxId()
 {
-  const userId = generateRandomId()
-  exec(`isolate --share-net --cg -p -b ${sanBoxes.size} --init`, (error, out, sterr) => {
-    if (error == null) {
-      
-      const sandbox = new Sandbox(sanBoxes.size, userId,pyrightData)
-      onComplete(sandbox)
-      sanBoxes.set(userId, sanBoxes.size)
-      
+  let sandboxId;
+  do
+    sandboxId = Math.floor(Math.random() * 2147483648)
+
+  while(await database.getBySandboxId(sandboxId) != null)
+  return sandboxId
+}
+
+export async function initSandbox(
+  pyrightData : (json: string) => void,
+  userId: string | undefined) : Promise<Sandbox>
+{
+
+  let sandboxId : number;
+
+  if(!userId)
+    userId = generateRandomId()
+
+  try
+  {
+    const user = await database.get(userId)
+    sandboxId = user.sandboxId
+  }
+  catch
+  {
+    sandboxId = await getNewSandboxId()
+    console.log(sandboxId)
+    database.insert(userId, sandboxId,true)
+    
+    try
+    {
+      execSync(`isolate --share-net --cg -p -b ${sandboxId} --init`)
     }
-  })
+    catch(error)
+    {
+      console.log(error)
+    }
+  }
+
+  return new Sandbox(sandboxId, userId,pyrightData)
 }
  function executeProcess(
   command: string,
@@ -75,10 +102,15 @@ export function runPipCommand(sandbox : Sandbox,pipRequest: PipRequest,stdout: (
  */
 export function destroySandBox(sandbox: Sandbox)
 {
-  sandbox.destroy();
-  fs.removeSync(`${isolatePath}/${sandbox.id}`);
-  console.log(`Removed sandbox ${isolatePath}/${sandbox.id}`)
-  sanBoxes.delete(sandbox.userId)
+ 
+  database.remove(sandbox.userId).then((removedSandbox) => {
+    if(removedSandbox)
+    {
+      sandbox.destroy();
+      fs.removeSync(`${isolatePath}/${sandbox.id}`);
+      console.log(`Removed sandbox ${isolatePath}/${sandbox.id}`)
+    }
+  })
 }
 
 

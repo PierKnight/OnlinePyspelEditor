@@ -44,13 +44,11 @@ export function init(server: HttpServer)
 { 
     const io = new Server(server, {cors: {origin: "*"}});
 
-    io.use((socket,next) => {
-        sandbox.initSandbox((socket as UserSocket),(sandbox) => {
-            (socket as UserSocket).sandbox = sandbox
-            next()
-        },json => {
-            //console.log(json)
-        })
+    io.use(async (socket,next) => {
+        console.log(socket.handshake.headers.userid)
+        const s = await sandbox.initSandbox(() => {},socket.handshake.headers.userid as string);
+        (socket as UserSocket).sandbox = s
+        next()
     })
     io.on('connect', (socket) => {
 
