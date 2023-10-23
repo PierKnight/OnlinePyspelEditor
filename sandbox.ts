@@ -1,13 +1,13 @@
 import {ChildProcessWithoutNullStreams, exec,execSync,spawn} from "child_process"
 import fs from "fs-extra"
 import { randomBytes, randomInt } from "crypto"
-import { UserSocket } from "./socket"
 import treeKill from "tree-kill"
 import { PipCommand, PipRequest } from "./model"
 import * as database from "./database"
+import process from "process"
 
 
-export const isolatePath = "/isolate"
+export const isolatePath = process.env.ISOLATE_PATH || "/isolate"
 
 
 export function init()

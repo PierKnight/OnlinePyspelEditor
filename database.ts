@@ -84,28 +84,4 @@ export async function cleanupTemporarySandboxes() : Promise<void> {
         console.log(`Deleted ${removed.count} temp sandboxes`)
     })
 }
-const transporter = nodemailer.createTransport({
-    auth: {
-      user: 'c328d0a9f212a7',
-      pass: 'c23a24315edbe0'
-    },
-    host: "sandbox.smtp.mailtrap.io",
-    port: 2525 
-  });
 
-  var mailOptions = {
-    from: 'ltmplg01l03c349j@studenti.unical.it',
-    to: 'pier.altimari@libero.it',
-    subject: 'Sending Email using Node.js',
-    text: 'That was easy!'
-  };
-  
-  /*
-  transporter.sendMail(mailOptions, function(error, info){
-    if (error) {
-      console.log(error);
-    } else {
-      console.log('Email sent: ' + info.response);
-    }
-  });
-  */ 

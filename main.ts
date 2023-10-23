@@ -3,13 +3,9 @@ import cors from "cors"
 import * as sandbox from "./sandbox.js"
 import * as socket from "./socket.js"
 import {createServer} from 'node:http';
-import { PipRequest, PipCommand, isSomeEnum } from './model.js';
-import { get, insert } from './database.js';
-import { NotFoundError } from '@prisma/client/runtime/library.js';
+import { sendEmail } from './email.js';
 
-
-
-const serverPort = 5000
+const serverPort = process.env.SERVER_PORT || 5000
 
 //run server powered by express with socket.io
 export const app = express();
@@ -22,7 +18,6 @@ server.listen(serverPort, () => {
 
 
 sandbox.init()
-
 socket.init(server)
 
 
