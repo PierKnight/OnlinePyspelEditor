@@ -10,11 +10,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model SandboxNotification {
+  id Int @id @default(autoincrement())
+  persistendId Int 
+  expiration DateTime
+  persistent Persistent @relation(fields: [persistendId], references: [id], onDelete: Cascade)
+}
+
+model Persistent {
+  id Int @id @default(autoincrement())
+  notifications SandboxNotification[]
+  expiration DateTime
+  userEmail String
+  sandbox UserSandbox @relation(fields: [sandboxId], references: [id], onDelete: Cascade)
+  sandboxId String @unique
+}
 
 model UserSandbox {
   id  String @id
   sandboxId Int @unique
-  expiration DateTime?
-  userEmail String?
-  temporary Boolean
+  persistent Persistent?
+  
 }
