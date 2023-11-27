@@ -1,0 +1,77 @@
+<div class="spash" *ngIf="!socketService.connected">
+  <h1 class="splash_header">Loading pyspel</h1>
+</div>
+
+<section class="h-100 d-flex flex-md-row flex-column  ">
+
+  <ul class="nav nav-pills flex-column mb-auto">
+    <button class="nav-item" (click)="toggleAtoms()">Atoms</button>
+    <button class="nav-item" (click)="toggleOutput()">Output</button>
+    <button [disabled]="socketService.isTaskRunning" class="nav-item" (click)="runCode()">Run</button>
+    <button [disabled]="!socketService.isTaskRunning" class="nav-item" (click)="stopCode()">Stop</button>
+    <button class="nav-item" (click)="open(content)">Settings</button>
+    <li>
+    </li>
+  </ul>
+
+
+  <div class="w-100 d-flex flex-column">
+    <as-split direction="vertical">
+      <as-split-area>
+        <as-split style="height: 100%;" direction="horizontal">
+          <as-split-area minSize="20" [order]="1" [size]="40">
+            <app-editor id="split1" #editorElement></app-editor>
+          </as-split-area>
+          <as-split-area minSize="20" [order]="2" [visible]="showAtoms" [size]="40">
+            <input type="text" [(ngModel)]="atomSearch">
+            <button (click)="addNewAtom()">ADD NEW ATOM</button>
+            <app-atom [editor]="editorElement.editor" *ngFor="let atom of getFilteredAtoms(editorComponent?.currentAtoms); trackBy: trackByMethod" [atom]="atom" [atoms]="editorElement.currentAtoms"></app-atom>
+          </as-split-area>
+      </as-split>
+    </as-split-area>
+    <as-split-area *ngIf="showOutput">
+      <app-terminal [strings]="log"></app-terminal>
+    </as-split-area>
+  </as-split>
+  </div>
+</section>
+
+
+
+<!-- Settings -->
+<ng-template #content let-offcanvas>
+	<div class="offcanvas-header">
+		<h3 class="offcanvas-title" id="offcanvas-basic-title">Settings</h3>
+		<button type="button" class="btn-close" aria-label="Close" (click)="offcanvas.dismiss('Cross click')"></button>
+	</div>
+	<div class="offcanvas-body">
+
+    <section class="card p-2">
+      <h4>Pip</h4>
+      <app-command [pipRequest]="pipRequest"></app-command>
+      <button [disabled]="socketService.isTaskRunning" class="nav-item" (click)="runPip()">Pip</button>
+    </section>
+
+    <section class="card p-2" *ngIf="sandboxInfo">
+      <h4>Session</h4>
+        <input type="email" class="form-control" id="sandboxEmail"
+        required
+        pattern="^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$"
+        [(ngModel)]="sandboxEmail" name="sandboxEmail"
+        #email="ngModel"
+        placeholder="email notification">
+
+        <section *ngIf="sandboxInfo.persistanceInfo">
+          <p>{{sandboxInfo.userId}}</p>
+          <button class="nav-item" (click)="socketService.makeTemporary()">Delete Session</button>
+          <button [disabled]="!email.valid" class="nav-item" (click)="makePersistent()">Update Email</button>
+        </section>
+        <section *ngIf="!sandboxInfo.persistanceInfo">
+          <button [disabled]="!email.valid" class="nav-item" (click)="makePersistent()">Make Persistent</button>
+        </section>
+    </section>
+    <section class="card p-2">
+      <h4>Editor</h4>
+    </section>
+	</div>
+</ng-template>

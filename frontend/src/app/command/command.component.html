@@ -1,0 +1,17 @@
+
+
+<div class="d-flex flex-row">
+  <p>pip</p>
+
+  <div ngbDropdown class="d-inline-block">
+    <button type="button" class="btn btn-outline-primary" id="dropdownBasic1" ngbDropdownToggle>
+      {{pipRequest.command}}
+    </button>
+    <div ngbDropdownMenu aria-labelledby="dropdownBasic1">
+      <button ngbDropdownItem *ngFor="let p of getPipCommands()" (click)="selectPipCommand(p)">{{p}}</button>
+    </div>
+  </div>
+
+  <input [disabled]="areArgsDisabled()" [formControl]="pipCommandArgs" [(ngModel)]="pipRequest.args[0]">
+
+</div>
