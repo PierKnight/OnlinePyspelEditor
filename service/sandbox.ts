@@ -128,7 +128,7 @@ export async function initSandbox(
 export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   sandbox.writeToFile()
-  return executeProcess(`isolate -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- /bin/python3 -u main.py`,stdout,stop)
+  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- /bin/python3 -u main.py`,stdout,stop)
 }
 
 /**
@@ -141,7 +141,7 @@ export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,std
 export function runPipCommand(sandbox : SandboxSession,pipRequest: PipRequest,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   const confirmAttribute = pipRequest.command === PipCommand.UNINSTALL ? "-y" : ""
-  return executeProcess(`isolate -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- /usr/bin/pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
+  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- /usr/bin/pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
 }
 
 
@@ -274,17 +274,19 @@ export class ProcessJob implements Job
 export class SandboxSession {
   info: SandboxInfo
   private currentJob?: Job 
-  private pyrightProcess: ChildProcessWithoutNullStreams
+  private pyrightProcess?: ChildProcessWithoutNullStreams
   code: string
 
   codeWritingJob?: any
 
+  pyrightFunction: any
+
   constructor(info: SandboxInfo, pyright: (data: string) => void, code: string)
   {
     this.info = info
-    this.pyrightProcess = executeProcess(`pyright --watch --outputjson /isolate/${this.info.sandboxId}/`,pyright)
+    //this.pyrightProcess = executeProcess(`pyright --watch --outputjson /isolate/${this.info.sandboxId}/`,pyright)
     this.code = code
-    
+    this.pyrightFunction = pyright
     
   }
 
@@ -300,6 +302,15 @@ export class SandboxSession {
   {
     console.log(`WRITING TO FILE ${this.code}` )
     fs.writeFileSync(getSandboxMainScript(this.info),this.code)
+
+    if(this.pyrightProcess?.pid)
+    {
+      treeKill(this.pyrightProcess?.pid)
+      this.pyrightProcess = undefined
+    }
+
+    this.pyrightProcess = executeProcess(`isolate -b ${this.info.sandboxId} -e -E HOME=\"/box\" --cg --dir=/etc -p --run -- /usr/local/bin/pyright --outputjson main.py`,this.pyrightFunction)
+
   }
 
   scheduleJob(job : Job) : boolean
@@ -325,10 +336,8 @@ export class SandboxSession {
   destroy()
   {
 
-    console.log(`Destroy sandbox processes ${this.pyrightProcess?.pid}`)
+    console.log(`Destroy sandbox processes`)
     this.killJob()
-    if(this.pyrightProcess.pid)
-      treeKill(this.pyrightProcess?.pid,"SIGKILL", (error => console.log(`PYRIGHT PROCESS ERROR: ${error}`)))
   }
 
 }

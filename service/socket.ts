@@ -114,10 +114,15 @@ function sendToStout(socket: UserSocket,data: string)
 
 function sendCodeCheckerDiagnostics(socket: Socket,data: string)
 {
-    const diagnostics = JSON.parse(data).generalDiagnostics as any[]
-    socket.emit("codeDiagnostics",diagnostics.map<CodeDiagnostic>(diagnostic => {
-        return {message: diagnostic.message,range: {...diagnostic.range},severity: diagnostic.severity}
-    }))
+    console.log(data)
+    try
+    {
+        const diagnostics = JSON.parse(data).generalDiagnostics as any[]
+        socket.emit("codeDiagnostics",diagnostics.map<CodeDiagnostic>(diagnostic => {
+            return {message: diagnostic.message,range: {...diagnostic.range},severity: diagnostic.severity}
+        }))
+    }
+    catch(error){}
 }
 
 
