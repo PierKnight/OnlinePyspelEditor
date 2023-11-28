@@ -14,6 +14,7 @@ import { Job as ToadJob, LongIntervalJob, SimpleIntervalJob, Task } from "toad-s
 export const isolatePath = process.env.ISOLATE_PATH || "/isolate"
 const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
 
+fs.mkdir(isolatePath)
 
 const sessions = new Map<string,SandboxSession>()
 
