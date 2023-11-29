@@ -1,21 +1,17 @@
-import {ChildProcessWithoutNullStreams, exec,execSync,spawn} from "child_process"
+import {ChildProcessWithoutNullStreams, execSync,spawn} from "child_process"
 import fs from "fs-extra"
-import { randomBytes, randomInt } from "crypto"
+import { randomBytes } from "crypto"
 import treeKill from "tree-kill"
 import { CodePosition, PipCommand, PipRequest, SandboxInfo } from "../model"
 import * as database from "./database"
 import process from "process"
-import e from "express"
 import moment from "moment"
-import exp from "constants"
-import { Job as ToadJob, LongIntervalJob, SimpleIntervalJob, Task } from "toad-scheduler"
+import { ISOLATE_PATH, MAX_CPU_TIME_LIMIT, MAX_MAX_PROCESSES_AND_OR_THREADS, MAX_MEM, MAX_STACK_LIMIT, PYRIGHT_PATH, PYTHON_PATH } from "./config"
 
 
-export const isolatePath = process.env.ISOLATE_PATH || "/isolate"
+
 const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
-
-fs.mkdir(isolatePath)
-
+fs.mkdir(ISOLATE_PATH, {recursive: true}, (error) => {console.log(`${ISOLATE_PATH} folder not created`)})
 const sessions = new Map<string,SandboxSession>()
 
 export function init()
@@ -43,7 +39,7 @@ async function getNewSandboxId()
 
 function getSandboxMainScript(sandbox: SandboxInfo): string
 {
-  return `${isolatePath}/${sandbox.sandboxId}/box/main.py`
+  return `${ISOLATE_PATH}/${sandbox.sandboxId}/box/main.py`
 }
 
 /**
@@ -129,7 +125,12 @@ export async function initSandbox(
 export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   sandbox.writeToFile()
-  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- /bin/python3 -u main.py`,stdout,stop)
+  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" 
+  -p ${MAX_MAX_PROCESSES_AND_OR_THREADS}
+  -m ${MAX_MEM}
+  -k ${MAX_STACK_LIMIT}
+  -t ${MAX_CPU_TIME_LIMIT}
+  -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- ${PYTHON_PATH} -u main.py`,stdout,stop)
 }
 
 /**
@@ -142,7 +143,7 @@ export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,std
 export function runPipCommand(sandbox : SandboxSession,pipRequest: PipRequest,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   const confirmAttribute = pipRequest.command === PipCommand.UNINSTALL ? "-y" : ""
-  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- /usr/bin/pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
+  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
 }
 
 
@@ -225,8 +226,8 @@ export function destroySandBox(sandbox: SandboxSession)
         {
           sessions.delete(sandbox.info.userId)
           sandbox.destroy();
-          fs.removeSync(`${isolatePath}/${sandbox.info.sandboxId}`);
-          console.log(`Removed sandbox ${isolatePath}/${sandbox.info.sandboxId}`)
+          fs.removeSync(`${ISOLATE_PATH}/${sandbox.info.sandboxId}`);
+          console.log(`Removed sandbox ${ISOLATE_PATH}/${sandbox.info.sandboxId}`)
         }
     });
   else
@@ -310,7 +311,7 @@ export class SandboxSession {
       this.pyrightProcess = undefined
     }
 
-    this.pyrightProcess = executeProcess(`isolate -b ${this.info.sandboxId} -e -E HOME=\"/box\" --cg --dir=/etc -p --run -- /usr/local/bin/pyright --outputjson main.py`,this.pyrightFunction)
+    this.pyrightProcess = executeProcess(`isolate -b ${this.info.sandboxId} -e -E HOME=\"/box\" --cg --dir=/etc -p --run -- ${PYRIGHT_PATH} --outputjson main.py`,this.pyrightFunction)
 
   }
 

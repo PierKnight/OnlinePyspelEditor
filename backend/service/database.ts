@@ -1,10 +1,10 @@
 import { PrismaClient, UserSandbox } from '@prisma/client'
-import { SandboxSession, isolatePath } from './sandbox';
 import fs from "fs-extra"
 import { SandboxInfo } from '../model';
 import moment, { now } from 'moment';
 import { sendEmail } from './email';
 import { cli } from 'winston/lib/winston/config';
+import { ISOLATE_PATH } from './config';
 
 export const prisma = new PrismaClient()
 
@@ -66,11 +66,11 @@ export async function cleanupTemporarySandboxes() : Promise<void> {
             where: {persistent: null}
         })
 
-        fs.readdirSync(isolatePath).forEach(a => console.log(a))
+        fs.readdirSync(ISOLATE_PATH).forEach(a => console.log(a))
 
         sandboxes.forEach(sandbox => {
             console.log(`Removing ${sandbox.sandboxId} sandbox`)
-            fs.rmSync(`${isolatePath}/${sandbox.sandboxId}`,{ recursive: true, force: true })
+            fs.rmSync(`${ISOLATE_PATH}/${sandbox.sandboxId}`,{ recursive: true, force: true })
             
         })
         const removed = await client.userSandbox.deleteMany({
