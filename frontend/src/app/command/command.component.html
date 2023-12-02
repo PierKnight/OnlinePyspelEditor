@@ -12,6 +12,6 @@
     </div>
   </div>
 
-  <input [disabled]="areArgsDisabled()" [formControl]="pipCommandArgs" [(ngModel)]="pipRequest.args[0]">
+  <input class="w-100" [disabled]="areArgsDisabled()" placeholder="insert command arguments" [formControl]="pipCommandArgs" [(ngModel)]="pipRequest.args[0]">
 
 </div>

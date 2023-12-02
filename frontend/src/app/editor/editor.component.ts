@@ -94,8 +94,6 @@ export class EditorComponent implements OnInit {
             })
         }
     }
-
-
     const editorState = EditorState.create({
         extensions: [basicSetup,amy,
             new LanguageSupport(pythonLanguage, [
@@ -111,77 +109,69 @@ export class EditorComponent implements OnInit {
           ]
     })
 
-
     this.editor = new EditorView({
         state: editorState,
         parent: document.getElementById("editor")!!
     })
+  }
+
+  private onEditorUpdate(state : EditorState)
+  {
+
+      this.currentAtoms = []
+      this.syntaxErrors = []
 
 
-}
+      let currentNode = syntaxTree(state).topNode.firstChild
+      while(currentNode != null)
+      {
+          const atom = this.checkAtom(state,currentNode);
+          if(atom)
+            this.currentAtoms.push(atom)
+          currentNode = currentNode.nextSibling
+      }
+
+  }
+
+  addNewAtom() : void
+  {
+    if(!this.editor) return;
+    const tab = " ".repeat(this.editor.state.tabSize - 2)
+    const newAtom = `@atom\nclass newAtom:\n${tab}field: any\n`
+    const lastAtom = this.currentAtoms.at(-1)
+    let transaction = this.editor.state.update({changes: {from: lastAtom?.to || 0, insert: newAtom}})
+    this.editor.dispatch(transaction)
+  }
 
 
+  isValidType(str: String)
+  {
+      return baseTypes.find(type => type == str) != null || this.currentAtoms.find(atom => atom.name == str)
+  }
 
-private onEditorUpdate(state : EditorState)
-{
+  checkAtom(state: EditorState,a : SyntaxNodeRef): Atom | null
+  {
+    if(a.name !== "DecoratedStatement")
+      return null;
+    const decoratedNode = a.node.firstChild
 
-    this.currentAtoms = []
-    this.syntaxErrors = []
-
-    syntaxTree(state).cursor().iterate(a => {
-        const atom = this.checkAtom(state,a);
-
-        console.log(a.name)
-        if(atom)
-        {
-          this.currentAtoms.push(atom)
-        }
-    })
-}
-
-addNewAtom() : void
-{
-  if(!this.editor) return;
-  const tab = " ".repeat(this.editor.state.tabSize - 2)
-  const newAtom = `@atom\nclass newAtom:\n${tab}field: any\n`
-  const lastAtom = this.currentAtoms.at(-1)
-  let transaction = this.editor.state.update({changes: {from: lastAtom?.to || 0, insert: newAtom}})
-  this.editor.dispatch(transaction)
-}
-
-
-isValidType(str: String)
-{
-    return baseTypes.find(type => type == str) != null || this.currentAtoms.find(atom => atom.name == str)
-}
-
-checkAtom(state: EditorState,a : SyntaxNodeRef): Atom | null
-{
-    if(a.name == "Decorator" && a.node.nextSibling?.name == "ClassDefinition")
+    if(decoratedNode && decoratedNode.name == "Decorator" && decoratedNode.node.nextSibling?.name == "ClassDefinition")
     {
-
-        let skipAtom = false
-        let classNode = a.node.nextSibling
-
-        let decoratorNameNode = a.node.getChild("VariableName")
-        let decoratorName = stringFromNode(state,decoratorNameNode)
+        const classNode = decoratedNode.node.nextSibling
+        const decoratorNameNode = decoratedNode.getChild("VariableName")
+        const decoratorName = stringFromNode(state,decoratorNameNode)
         if(decoratorName == "atom") {
 
-
-
-            let nameNode = classNode.getChild("VariableName")
-            let atomName = stringFromNode(state,nameNode)
-
-
-            let fields = new Map()
-            let assignments = classNode.getChild("Body")?.getChildren("AssignStatement")
+            const nameNode = classNode.getChild("VariableName")
+            const atomName = stringFromNode(state,nameNode)
+            const fields = new Map()
+            const assignments = classNode.getChild("Body")?.getChildren("AssignStatement")
             if(assignments)
             {
                 for (let assign of assignments) {
 
-
-                    let fieldName = stringFromNode(state, assign.getChild("VariableName"))
-                    let fieldType = stringFromNode(state, assign.getChild("TypeDef")?.getChild("VariableName"))
+                    const fieldName = stringFromNode(state, assign.getChild("VariableName"))
+                    const fieldType = stringFromNode(state, assign.getChild("TypeDef")?.getChild("VariableName"))
 
                     if (!fieldType) {
                         this.syntaxErrors.push({error: "Missing Type", from: assign.from, to: assign.to})
@@ -204,7 +194,7 @@ checkAtom(state: EditorState,a : SyntaxNodeRef): Atom | null
         }
     }
     return null
-}
+  }
 }
 export function stringFromNode(state: EditorState, node?: SyntaxNode | null): String
 {

@@ -11,9 +11,9 @@
     </button>
     <button class="btn btn-outline-danger" (click)="removeAtom()">RM</button>
   <section #collapse="ngbCollapse" [(ngbCollapse)]="collapsed">
-    <input id="atom-name" type="text" formControlName="name">
+    <input placeholder="insert atom name" id="atom-name" type="text" formControlName="name">
     <form class="ms-3 d-flex flex-row" *ngFor="let field of fields; trackBy: trackByMethod" [formGroup]="field" >
-        <input id="first-name" type="text" formControlName="name">
+        <input placeholder="Insert field name" id="first-name" type="text" formControlName="name">
 
         <div ngbDropdown class="d-inline-block">
           <button type="button" class="btn btn-outline-primary" id="dropdownBasic1" ngbDropdownToggle>
