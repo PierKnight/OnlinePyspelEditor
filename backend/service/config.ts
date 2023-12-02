@@ -28,3 +28,5 @@ export const MAX_STACK_LIMIT = process.env.MAX_STACK_LIMIT || 128000
 export const  EXTRA_TIME = process.env.EXTRA_TIME || 5
 //Limit stack size to <size> KB (default: 0=unlimited)
 export const MAX_MAX_PROCESSES_AND_OR_THREADS = process.env.MAX_MAX_PROCESSES_AND_OR_THREADS || 0
+//The time need to write the current python program inside the file
+export const SCRIPT_UPDATE_DELAY = Number.parseInt(process.env.SCRIPT_UPDATE_DELAY || "300") 
