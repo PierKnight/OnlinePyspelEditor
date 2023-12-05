@@ -4,9 +4,9 @@ import { randomBytes } from "crypto"
 import treeKill from "tree-kill"
 import { CodePosition, PipCommand, PipRequest, SandboxInfo } from "../model"
 import * as database from "./database"
-import process from "process"
+import process, { send } from "process"
 import moment from "moment"
-import { ISOLATE_PATH, MAX_CPU_TIME_LIMIT, MAX_MAX_PROCESSES_AND_OR_THREADS, MAX_MEM, MAX_STACK_LIMIT, PYRIGHT_PATH, PYTHON_PATH } from "./config"
+import { ISOLATE_PATH, MAX_CPU_TIME_LIMIT, MAX_MAX_PROCESSES_AND_OR_THREADS, MAX_MEM, MAX_STACK_LIMIT, PYRIGHT_PATH, PYTHON_PATH, SCRIPT_UPDATE_DELAY, WALL_TIME } from "./config"
 
 
 
@@ -106,11 +106,11 @@ export async function initSandbox(
   ) : ChildProcessWithoutNullStreams
 {
   const runCode = spawn(command,args,{shell: true,detached: true});
-  runCode.stdout.on('data', (data) => { sendData(data.toString()) });
+runCode.stdout.on('data', (data) => { sendData(data.toString()) });
   runCode.stderr.on('data', (data) => { sendData(data.toString()) });
   runCode.on("close", (code) => {
     onStop(code!)
-  })
+      })
   return runCode 
 }
 
@@ -125,12 +125,14 @@ export async function initSandbox(
 export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   sandbox.writeToFile()
-  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" 
-  -p ${MAX_MAX_PROCESSES_AND_OR_THREADS}
-  -m ${MAX_MEM}
-  -k ${MAX_STACK_LIMIT}
-  -t ${MAX_CPU_TIME_LIMIT}
-  -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- ${PYTHON_PATH} -u main.py`,stdout,stop)
+  const command = `isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" \
+  -t ${MAX_CPU_TIME_LIMIT} \
+  -w ${WALL_TIME} \
+  -m ${MAX_MEM} \
+  -k ${MAX_STACK_LIMIT} \
+  -p  ${MAX_MAX_PROCESSES_AND_OR_THREADS} \
+  -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net --run -- ${PYTHON_PATH} -u main.py`
+  return executeProcess(command,stdout,stop)
 }
 
 /**
@@ -143,7 +145,7 @@ export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,std
 export function runPipCommand(sandbox : SandboxSession,pipRequest: PipRequest,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   const confirmAttribute = pipRequest.command === PipCommand.UNINSTALL ? "-y" : ""
-  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
+  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- /usr/bin/pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
 }
 
 
@@ -155,8 +157,6 @@ export function runPipCommand(sandbox : SandboxSession,pipRequest: PipRequest,st
  */
 export async function makeSandboxPersistent(sandbox: SandboxSession,userEmail: string) : Promise<SandboxInfo>
 {
-
-  console.log(userEmail)
   if(userEmail && !emailRegex.test(userEmail))
         throw new Error("Invalid Email")
   
@@ -286,7 +286,6 @@ export class SandboxSession {
   constructor(info: SandboxInfo, pyright: (data: string) => void, code: string)
   {
     this.info = info
-    //this.pyrightProcess = executeProcess(`pyright --watch --outputjson /isolate/${this.info.sandboxId}/`,pyright)
     this.code = code
     this.pyrightFunction = pyright
     
@@ -297,7 +296,7 @@ export class SandboxSession {
     clearTimeout(this.codeWritingJob)
     this.codeWritingJob = setTimeout(() => {
       this.writeToFile()
-    },300)
+    },SCRIPT_UPDATE_DELAY)
   }
 
   writeToFile()
@@ -305,14 +304,21 @@ export class SandboxSession {
     console.log(`WRITING TO FILE ${this.code}` )
     fs.writeFileSync(getSandboxMainScript(this.info),this.code)
 
+    return;
+    /*
     if(this.pyrightProcess?.pid)
     {
-      treeKill(this.pyrightProcess?.pid)
-      this.pyrightProcess = undefined
+      treeKill(this.pyrightProcess?.pid, () => {
+        this.pyrightProcess = executeProcess(`isolate -b ${this.info.sandboxId} -E HOME=\"/box\" --cg --dir=/etc -p --run -- ${PYRIGHT_PATH} --outputjson main.py`,this.pyrightFunction)
+      })
     }
+    else
+      this.pyrightProcess = executeProcess(`isolate -b ${this.info.sandboxId} -E HOME=\"/box\" --cg --dir=/etc -p --run -- ${PYRIGHT_PATH} --outputjson main.py`,this.pyrightFunction)
+     
+    console.log(PYRIGHT_PATH)
 
-    this.pyrightProcess = executeProcess(`isolate -b ${this.info.sandboxId} -e -E HOME=\"/box\" --cg --dir=/etc -p --run -- ${PYRIGHT_PATH} --outputjson main.py`,this.pyrightFunction)
-
+    */
+   
   }
 
   scheduleJob(job : Job) : boolean

@@ -3,6 +3,7 @@ import * as sandbox from "./sandbox.js"
 import { Server as HttpServer } from 'node:http';
 import { ProcessJob } from './sandbox.js';
 import { CodeDiagnostic, CodePosition, CodeRequest, JobResponse, KillResponse, PipCommand, PipRequest, RequestResponse, SandboxInfo, isSomeEnum, validatePipRequest } from '../model.js';
+import { MAX_OUT_BYTES_PER_SECOND } from './config.js';
 
 
 interface RequestJob<T>
@@ -92,12 +93,26 @@ export function init(server: HttpServer)
                 return {message: "Killed Job", success: true}
             return {message: "Job not killed", success: false}
         })
+        checkUserNetworkUsage(userSOcket)
         
         socket.on('disconnect', () => {onSocketDisconnect(userSOcket)})
     });
     return io
 }
 
+
+
+function checkUserNetworkUsage(socket: UserSocket)
+{
+    let bytesPerSecond = 0
+    const checkInterval = setInterval(() => { bytesPerSecond = 0},1000)
+    socket.onAnyOutgoing((eventName, ...args) => {
+        bytesPerSecond += Buffer.byteLength(args[0])
+        if(MAX_OUT_BYTES_PER_SECOND > 0 && bytesPerSecond >= MAX_OUT_BYTES_PER_SECOND)
+            socket.sandbox.killJob()
+    })
+    socket.on('disconnect', () => {clearInterval(checkInterval)})
+}
 
 //handle user disconnection
 function onSocketDisconnect(socket: UserSocket)
