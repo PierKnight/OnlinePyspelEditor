@@ -129,7 +129,6 @@ function sendToStout(socket: UserSocket,data: string)
 
 function sendCodeCheckerDiagnostics(socket: Socket,data: string)
 {
-    console.log(data)
     try
     {
         const diagnostics = JSON.parse(data).generalDiagnostics as any[]

@@ -102,11 +102,11 @@ export async function initSandbox(
   command: string,
   sendData: (data: string) => void,
   onStop: (code: number) => void = () => {},
-  args : ReadonlyArray<string> = [""],
+  args : ReadonlyArray<string> = [""]
   ) : ChildProcessWithoutNullStreams
 {
   const runCode = spawn(command,args,{shell: true,detached: true});
-runCode.stdout.on('data', (data) => { sendData(data.toString()) });
+  runCode.stdout.on('data', (data) => { sendData(data.toString()) });
   runCode.stderr.on('data', (data) => { sendData(data.toString()) });
   runCode.on("close", (code) => {
     onStop(code!)
@@ -304,21 +304,15 @@ export class SandboxSession {
     console.log(`WRITING TO FILE ${this.code}` )
     fs.writeFileSync(getSandboxMainScript(this.info),this.code)
 
-    return;
-    /*
+    
     if(this.pyrightProcess?.pid)
-    {
-      treeKill(this.pyrightProcess?.pid, () => {
-        this.pyrightProcess = executeProcess(`isolate -b ${this.info.sandboxId} -E HOME=\"/box\" --cg --dir=/etc -p --run -- ${PYRIGHT_PATH} --outputjson main.py`,this.pyrightFunction)
-      })
-    }
-    else
-      this.pyrightProcess = executeProcess(`isolate -b ${this.info.sandboxId} -E HOME=\"/box\" --cg --dir=/etc -p --run -- ${PYRIGHT_PATH} --outputjson main.py`,this.pyrightFunction)
-     
+      treeKill(this.pyrightProcess?.pid)
+    
+    this.pyrightProcess = executeProcess(`isolate --cg -b ${this.info.sandboxId} -E HOME="/box" -E PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" -d /usr -d /etc -p --share-net --run -- /usr/local/bin/pyright --outputjson`,this.pyrightFunction)
+    
     console.log(PYRIGHT_PATH)
 
-    */
-   
+    
   }
 
   scheduleJob(job : Job) : boolean
@@ -333,6 +327,7 @@ export class SandboxSession {
 
   killJob() : boolean
   {
+    console.log(`KILLING JOB OF SANDBOX ${this.info.userId}`)
     if(!this.currentJob)
       return false;
     const killed = this.currentJob.kill()
