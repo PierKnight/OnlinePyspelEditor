@@ -69,7 +69,7 @@ export class EditorComponent implements OnInit {
       if(update.docChanged) {
           update.changes.iterChanges((fromA,toA,fromB,toB,inserted) => {
               //this.changes.push({from: fromA,to: toA,text: inserted.toString()})
-              console.log({from: fromA,to: toA,text: inserted.toString()})
+              console.log({fromA: fromA,toA: toA,fromB: fromB, toB: toB, text: inserted.toString()})
               this.socketService.sendEditorCode({from: fromA,to: toA,value: inserted.toString()})
           },true)
           this.onEditorUpdate(update.state)
@@ -136,10 +136,13 @@ export class EditorComponent implements OnInit {
   addNewAtom() : void
   {
     if(!this.editor) return;
+
+    const a = syntaxTree(this.editor.state).topNode.getChildren("ImportStatement").at(-1)
+
     const tab = " ".repeat(this.editor.state.tabSize - 2)
-    const newAtom = `@atom\nclass newAtom:\n${tab}field: any\n`
+    const newAtom = `\n@atom\nclass newAtom:\n${tab}field: any`
     const lastAtom = this.currentAtoms.at(-1)
-    let transaction = this.editor.state.update({changes: {from: lastAtom?.to || 0, insert: newAtom}})
+    let transaction = this.editor.state.update({changes: {from: lastAtom?.to || a?.node.to || 0, insert: newAtom}})
     this.editor.dispatch(transaction)
   }
 

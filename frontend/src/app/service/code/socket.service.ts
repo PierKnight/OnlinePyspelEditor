@@ -116,7 +116,6 @@ export class SocketService implements OnInit {
 
   sendEditorCode(code: CodePosition)
   {
-    console.log(code)
     this.socket.emit("sendCode",code, () => {})
   }
 

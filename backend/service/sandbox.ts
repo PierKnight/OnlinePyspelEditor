@@ -6,7 +6,7 @@ import { CodePosition, PipCommand, PipRequest, SandboxInfo } from "../model"
 import * as database from "./database"
 import process, { send } from "process"
 import moment from "moment"
-import { ISOLATE_PATH, MAX_CPU_TIME_LIMIT, MAX_MAX_PROCESSES_AND_OR_THREADS, MAX_MEM, MAX_STACK_LIMIT, PYRIGHT_PATH, PYTHON_PATH, SCRIPT_UPDATE_DELAY, WALL_TIME } from "./config"
+import { ISOLATE_PATH, MAX_CPU_TIME_LIMIT, MAX_MAX_PROCESSES_AND_OR_THREADS, MAX_MEM, MAX_OUT_BYTES_PER_SECOND, MAX_STACK_LIMIT, PYRIGHT_PATH, PYTHON_PATH, SCRIPT_UPDATE_DELAY, WALL_TIME } from "./config"
 
 
 
@@ -85,7 +85,9 @@ export async function initSandbox(
     currentCode = fs.readFileSync(getSandboxMainScript(sandboxInfo)).toString()
   }
   catch(error)
-  {}
+  {
+    console.log("Error reading main.py in sandbox init")
+  }
   const session = new SandboxSession(sandboxInfo,pyrightData,"")
   return {session: session,currenctCode: currentCode}
 }
@@ -102,15 +104,18 @@ export async function initSandbox(
   command: string,
   sendData: (data: string) => void,
   onStop: (code: number) => void = () => {},
-  args : ReadonlyArray<string> = [""]
+  args : ReadonlyArray<string> = [""],
+  detached: boolean = false,
+  env: NodeJS.ProcessEnv | undefined = undefined
   ) : ChildProcessWithoutNullStreams
 {
-  const runCode = spawn(command,args,{shell: true,detached: true});
+
+  const runCode = spawn(command,args,{shell: true,detached: detached,env: env});
   runCode.stdout.on('data', (data) => { sendData(data.toString()) });
   runCode.stderr.on('data', (data) => { sendData(data.toString()) });
   runCode.on("close", (code) => {
     onStop(code!)
-      })
+  })
   return runCode 
 }
 
@@ -124,15 +129,22 @@ export async function initSandbox(
  */
 export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
-  sandbox.writeToFile()
-  const command = `isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" \
+  let bytesPerSecond = 0
+  
+  const checkInterval = setInterval(() => { bytesPerSecond = 0},1000)
+  const command = `isolate -E HOME=/box -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" \
   -t ${MAX_CPU_TIME_LIMIT} \
   -w ${WALL_TIME} \
   -m ${MAX_MEM} \
   -k ${MAX_STACK_LIMIT} \
   -p  ${MAX_MAX_PROCESSES_AND_OR_THREADS} \
   -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net --run -- ${PYTHON_PATH} -u main.py`
-  return executeProcess(command,stdout,stop)
+  return executeProcess(command,(data) => {
+    bytesPerSecond += Buffer.byteLength(data)
+    if(MAX_OUT_BYTES_PER_SECOND > 0 && bytesPerSecond >= MAX_OUT_BYTES_PER_SECOND)
+      sandbox.killJob()
+    stdout(data)
+  },(code) => {stop(code); clearInterval(checkInterval)})
 }
 
 /**
@@ -145,7 +157,7 @@ export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,std
 export function runPipCommand(sandbox : SandboxSession,pipRequest: PipRequest,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   const confirmAttribute = pipRequest.command === PipCommand.UNINSTALL ? "-y" : ""
-  return executeProcess(`isolate -E HOME=\"/box\" -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net -p --run -- /usr/bin/pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
+  return executeProcess(`isolate --cg -s -b ${sandbox.info.sandboxId} -E HOME="/box" -E PATH="/box/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" -d /usr -d /etc -p --share-net --run -- /usr/bin/pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
 }
 
 
@@ -239,27 +251,29 @@ export function destroySandBox(sandbox: SandboxSession)
 
 export interface Job 
 {
-  run: (end: () => void) => void,
-  kill: () => boolean
+  run: () => Promise<void>,
+  kill: () => Promise<boolean>
 }
 
 export class ProcessJob implements Job
 {
   process ?: ChildProcessWithoutNullStreams
-  private provider: () => ChildProcessWithoutNullStreams 
+  private provider: () => ChildProcessWithoutNullStreams
 
   constructor(processProvider: () => ChildProcessWithoutNullStreams)
   {
     this.provider = processProvider
   }
-  run(end: () => void)
+  async run(): Promise<void>
   {
     this.process = this.provider()
-    this.process.on("close", (code) => {
-      end()
-    })
+    return new Promise((resolve => { 
+      this.process!.on("close", (code) => {
+        resolve()
+      })
+    }))
   }
-  kill() : boolean{
+  async kill() : Promise<boolean>{
 
     if(!this.process)
       return false;
@@ -288,9 +302,7 @@ export class SandboxSession {
     this.info = info
     this.code = code
     this.pyrightFunction = pyright
-    
   }
-
   resetCodeWriting()
   {
     clearTimeout(this.codeWritingJob)
@@ -298,39 +310,34 @@ export class SandboxSession {
       this.writeToFile()
     },SCRIPT_UPDATE_DELAY)
   }
-
-  writeToFile()
-  {
+ 
+  async writeToFile() : Promise<void>
+  { 
     console.log(`WRITING TO FILE ${this.code}` )
-    fs.writeFileSync(getSandboxMainScript(this.info),this.code)
+    await fs.writeFile(getSandboxMainScript(this.info),this.code);  
+    this.pyrightProcess = executeProcess(`isolate -s -b ${this.info.sandboxId} -E HOME=/box -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" --cg -p --run -- /usr/local/bin/pyright --outputjson main.py`,(data) => {
+      this.pyrightFunction(data)
+    })
 
-    
-    if(this.pyrightProcess?.pid)
-      treeKill(this.pyrightProcess?.pid)
-    
-    this.pyrightProcess = executeProcess(`isolate --cg -b ${this.info.sandboxId} -E HOME="/box" -E PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" -d /usr -d /etc -p --share-net --run -- /usr/local/bin/pyright --outputjson`,this.pyrightFunction)
-    
-    console.log(PYRIGHT_PATH)
-
-    
   }
 
-  scheduleJob(job : Job) : boolean
+  async scheduleJob(job : Job) : Promise<boolean>
   {
     console.log(`Scheduling Job of of user ${this.info.userId}`);  
     if(this.currentJob)
       return false;
     this.currentJob = job;
-    job.run(() => {this.currentJob = undefined})
+    await job.run()
+    this.currentJob = undefined
     return true
   }
 
-  killJob() : boolean
+  async killJob(): Promise<boolean>
   {
-    console.log(`KILLING JOB OF SANDBOX ${this.info.userId}`)
     if(!this.currentJob)
       return false;
-    const killed = this.currentJob.kill()
+    console.log(`KILLING JOB OF SANDBOX ${this.info.userId}`)
+    const killed = await this.currentJob.kill()
     if(killed)
       this.currentJob = undefined
     return killed
@@ -338,7 +345,6 @@ export class SandboxSession {
 
   destroy()
   {
-
     console.log(`Destroy sandbox processes`)
     this.killJob()
   }

@@ -85,13 +85,13 @@ export class PyspelComponent implements OnInit {
     if(!this.editorComponent.editor) return;
     this.offcanvasService.dismiss()
     this.socketService.runJob<PipRequest>("pipRequest", this.pipRequest,(res) => {
-      if(res.code != 0)
-        this.log = res.message
+      //if(res.code != 0)
+      //  this.log = res.message
     })
-    {
-      this.log = ""
-      this.showOutput = true
-    }
+
+    this.log = ""
+    this.showOutput = true
+
   }
 
   stopCode()
