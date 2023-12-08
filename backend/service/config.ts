@@ -9,7 +9,7 @@ export const SMTP_PORT = process.env.SMTP_PORT
  * Sandbox Config
  */
 
-export const MAX_OUT_BYTES_PER_SECOND : number = getConfigNumber("MAX_OUT_BYTES_PER_SECOND", 1024)
+export const MAX_OUT_BYTES_PER_SECOND : number = getConfigNumber("MAX_OUT_BYTES_PER_SECOND", 4048)
 
 //Python interpreter path used inside sandbox
 export const PYTHON_PATH = process.env.PYTHON_PATH || "/usr/bin/python3"

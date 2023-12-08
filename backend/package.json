@@ -19,13 +19,14 @@
     "@types/fs-extra": "^11.0.2",
     "@types/node": "^20.8.4",
     "@types/nodemailer": "^6.4.13",
-    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2",
     "prisma": "^5.4.2",
     "typescript": "^5.2.2"
   },
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/index.js",
-    "dev": "sudo npx tsc -w & sudo npx nodemon --watch . --ext \"ts,json\" dist/main.js"
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/main.js\""
   }
 }
