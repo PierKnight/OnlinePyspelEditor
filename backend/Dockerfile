@@ -23,6 +23,6 @@ COPY --from=build /usr/src/app/dist dist/
 COPY --from=build /usr/src/app/prisma prisma/
 COPY --from=isolate /usr/src/app/isolate-1.10.1/isolate /bin/isolate
 COPY isolate /usr/local/etc/isolate
-RUN npx prisma generate && apk add libcap-dev && apk add python3 && apk add py3-pip && pip install pyspel && pip install pyright
+RUN npx prisma generate && apk add libcap-dev && apk add python3 && apk add py3-pip && pip install pyspel && npm install -g pyright 
 EXPOSE 5000
 CMD ["node", "dist/main.js"]
