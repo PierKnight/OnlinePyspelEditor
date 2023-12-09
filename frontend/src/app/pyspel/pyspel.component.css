@@ -1,6 +1,6 @@
 .spash
 {
-  background-color: white;
+  background-color: var(--bs-body-bg);
   position: fixed;
   width: 100%;
   height: 100%;
@@ -14,7 +14,6 @@
 .splash_header
 {
   height : 90%;
-  color : black;
   font-family : consolas;
   font-size : 30px;
   display : flex;

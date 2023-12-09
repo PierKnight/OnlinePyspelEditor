@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { ApptoastService } from './service/toast/apptoast.service';
+import { SettingsService } from './service/settings/settings.service';
 
 @Component({
   selector: 'app-main',
@@ -8,9 +9,13 @@ import { ApptoastService } from './service/toast/apptoast.service';
 })
 export class MainComponent {
 
-  constructor(public toastService: ApptoastService)
+  constructor(public toastService: ApptoastService, public settingsService: SettingsService)
   {
-    
+    settingsService.mode.subscribe(mode => {
+      const node = document.createAttribute("data-bs-theme");
+      node.value = mode
+      document.body.attributes.setNamedItem(node)
+    })
   }
 
 }

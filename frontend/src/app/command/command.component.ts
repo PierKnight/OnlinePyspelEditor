@@ -12,9 +12,6 @@ export class CommandComponent {
 
   pipCommandArgs = new FormControl("")
 
-
-  e : string = ""
-
   @Input()  pipRequest!: PipRequest;
   @Output() pipRequestChange = new EventEmitter<PipRequest>();
 
@@ -27,16 +24,15 @@ export class CommandComponent {
   selectPipCommand(pipCommand: PipCommand)
   {
     this.pipRequest.command = pipCommand
+    if(pipCommand === PipCommand.FREEZE)
+      this.pipCommandArgs.disable()
+    else
+      this.pipCommandArgs.enable()
   }
 
   selectPipArgument(pipArgs: string)
   {
     this.pipRequest.args = [pipArgs]
-  }
-
-  areArgsDisabled() : boolean
-  {
-    return this.pipRequest.command === PipCommand.FREEZE
   }
 
 }

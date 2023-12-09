@@ -1,29 +1,31 @@
 
 <form [formGroup]="atomForm">
+  <section class="d-flex gap-1">
     <button
       *ngIf="collapable"
       type="button"
-      class="btn btn-outline-primary"
+      class="btn btn-secondary"
       (click)="collapsed = ! collapsed"
       [attr.aria-expanded]="!collapsed"
       aria-controls="collapseExample">
       {{atom.name}}
     </button>
-    <button class="btn btn-outline-danger" (click)="removeAtom()">RM</button>
-  <section #collapse="ngbCollapse" [(ngbCollapse)]="collapsed">
+    <button class="btn btn-danger" (click)="removeAtom()">Remove</button>
+  </section>
+  <section class="p-1" #collapse="ngbCollapse" [(ngbCollapse)]="collapsed">
     <input placeholder="insert atom name" id="atom-name" type="text" formControlName="name">
     <form class="ms-3 d-flex flex-row" *ngFor="let field of fields; trackBy: trackByMethod" [formGroup]="field" >
         <input placeholder="Insert field name" id="first-name" type="text" formControlName="name">
 
         <div ngbDropdown class="d-inline-block">
-          <button type="button" class="btn btn-outline-primary" id="dropdownBasic1" ngbDropdownToggle>
+          <button type="button" class="btn btn-secondary" id="dropdownBasic1" ngbDropdownToggle>
             {{field.controls['type'].value}}
           </button>
           <div ngbDropdownMenu aria-labelledby="dropdownBasic1">
             <button ngbDropdownItem *ngFor="let t of getTypes()" (click)="field.controls['type'].setValue(t)">{{t}}</button>
           </div>
         </div>
-        <button class="btn btn-outline-danger" (click)="removeField(field)">RM</button>
+        <button class="btn btn-danger" (click)="removeField(field)">Remove</button>
     </form>
 
   </section>

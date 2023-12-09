@@ -2,14 +2,14 @@
   <h1 class="splash_header">Loading pyspel</h1>
 </div>
 
-<section class="h-100 d-flex flex-md-row flex-column  ">
+<section class="h-100 d-flex flex-md-row flex-column" >
 
-  <ul class="nav nav-pills flex-column mb-auto">
-    <button class="nav-item" (click)="toggleAtoms()">Atoms</button>
-    <button class="nav-item" (click)="toggleOutput()">Output</button>
-    <button [disabled]="socketService.isTaskRunning" class="nav-item" (click)="runCode()">Run</button>
-    <button [disabled]="!socketService.isTaskRunning" class="nav-item" (click)="stopCode()">Stop</button>
-    <button class="nav-item" (click)="open(content)">Settings</button>
+  <ul class="nav nav-pills flex-column mb-auto gap-1 mx-1">
+    <button class="nav-item btn btn-primary p-1" (click)="toggleAtoms()">Atoms</button>
+    <button class="nav-item btn btn-primary p-1" (click)="toggleOutput()">Output</button>
+    <button [disabled]="socketService.isTaskRunning" class="nav-item btn btn-success p-1" (click)="runCode()">Run</button>
+    <button [disabled]="!socketService.isTaskRunning" class="nav-item btn btn-danger p-1" (click)="stopCode()">Stop</button>
+    <button class="nav-item btn btn-secondary p-1" (click)="open(content)">Settings</button>
     <li>
     </li>
   </ul>
@@ -22,10 +22,14 @@
           <as-split-area minSize="20" [order]="1" [size]="40">
             <app-editor id="split1" #editorElement></app-editor>
           </as-split-area>
-          <as-split-area minSize="20" [order]="2" [visible]="showAtoms" [size]="40">
-            <input placeholder="Filter by atom name" type="text" [(ngModel)]="atomSearch">
-            <button (click)="addNewAtom()">Add new atom</button>
-            <app-atom [editor]="editorElement.editor" *ngFor="let atom of getFilteredAtoms(editorComponent?.currentAtoms); trackBy: trackByMethod" [atom]="atom" [atoms]="editorElement.currentAtoms"></app-atom>
+          <as-split-area class="p-1" minSize="20" [order]="2" [visible]="showAtoms" [size]="40">
+            <div class="d-flex mb-2">
+              <input placeholder="Filter by atom name" type="text" [(ngModel)]="atomSearch">
+              <button class="btn btn-success" (click)="addNewAtom()">Add new atom</button>
+            </div>
+            <div class="d-flex flex-column gap-1">
+              <app-atom [editor]="editorElement.editor" *ngFor="let atom of getFilteredAtoms(editorComponent?.currentAtoms); trackBy: trackByMethod" [atom]="atom" [atoms]="editorElement.currentAtoms"></app-atom>
+            </div>
           </as-split-area>
       </as-split>
     </as-split-area>
@@ -44,15 +48,15 @@
 		<h3 class="offcanvas-title" id="offcanvas-basic-title">Settings</h3>
 		<button type="button" class="btn-close" aria-label="Close" (click)="offcanvas.dismiss('Cross click')"></button>
 	</div>
-	<div class="offcanvas-body">
+	<div class="offcanvas-body d-flex flex-column gap-2">
 
-    <section class="card p-2">
+    <section class="card p-2 d-flex gap-2">
       <h4>Pip</h4>
       <app-command [pipRequest]="pipRequest"></app-command>
-      <button [disabled]="socketService.isTaskRunning" class="nav-item" (click)="runPip()">Run</button>
+      <button [disabled]="socketService.isTaskRunning" class="p-1 nav-item btn btn-success" (click)="runPip()">Run</button>
     </section>
 
-    <section class="card p-2" *ngIf="sandboxInfo">
+    <section class="card p-2 d-flex gap-1" *ngIf="sandboxInfo">
       <h4>Session</h4>
         <input type="email" class="form-control" id="sandboxEmail"
         required
@@ -61,17 +65,35 @@
         #email="ngModel"
         placeholder="Insert Email to make persistent">
 
-        <section *ngIf="sandboxInfo.persistanceInfo">
+        <section *ngIf="sandboxInfo.persistanceInfo" class="gap-1 d-flex flex-column">
           <p>{{sandboxInfo.userId}}</p>
-          <button class="nav-item" (click)="socketService.makeTemporary()">Delete Session</button>
-          <button [disabled]="!email.valid" class="nav-item" (click)="makePersistent()">Update Email</button>
+          <button [disabled]="!email.valid" class="p-1 nav-item btn btn-success" (click)="makePersistent()">Update Email</button>
+          <button class="nav-item btn btn-danger" (click)="socketService.makeTemporary()">Delete Session</button>
         </section>
-        <section *ngIf="!sandboxInfo.persistanceInfo">
-          <button [disabled]="!email.valid" class="nav-item" (click)="makePersistent()">Make Persistent</button>
+        <section *ngIf="!sandboxInfo.persistanceInfo" class=" d-flex flex-column">
+          <button [disabled]="!email.valid" class="p-1 nav-item btn btn-success" (click)="makePersistent()">Make Persistent</button>
         </section>
     </section>
     <section class="card p-2">
       <h4>Editor</h4>
+      <div class="form-group row">
+        <label class="text-nowrap col-sm-2 col-form-label">Tab size:</label>
+        <div class="col-sm-10">
+          <input [value]="settingsService.tabSizeValue" type="number" #tabSize class="form-control" placeholder="Insert Tab Size" (input)="updateTabSize(tabSize.value)">
+        </div>
+      </div>
+      <div class="form-group row">
+        <label class="text-nowrap col-sm-3 col-form-label">Editor Theme:</label>
+        <div ngbDropdown class="col-sm-10">
+          <button type="button" class="w-100 btn btn-primary" id="themeDropdown" ngbDropdownToggle>
+            {{settingsService.editorThemeValue}}
+          </button>
+          <div ngbDropdownMenu aria-labelledby="themeDropdown">
+            <button ngbDropdownItem *ngFor="let theme of editorThemes" (click)="settingsService.updateEditorTheme(theme)">{{theme}}</button>
+          </div>
+        </div>
+      </div>
+
     </section>
 	</div>
 </ng-template>

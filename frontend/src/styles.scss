@@ -1,9 +1,21 @@
 /* You can add global styles to this file, and also import other style files */
 
+ // Define il tuo colore primario
+
+
+
 .cm-editor
 {
   height: 100%;
+  border-radius: 10px;
+}
+
+.as-split-gutter
+{
+  background-color: var(--bs-secondary-bg) !important;
 }
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+

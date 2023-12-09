@@ -2,11 +2,12 @@ import {Component, Host, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {SocketService} from "../service/code/socket.service";
 import { EditorComponent } from '../editor/editor.component';
 import { Atom, BaseAtom } from '../service/completions';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { PipCommand, PipRequest, SandboxInfo } from '../model/model';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgbOffcanvas } from '@ng-bootstrap/ng-bootstrap';
+import { SettingsService } from '../service/settings/settings.service';
+import { editorThemes } from '../service/settings/settings.service';
 
 @Component({
   providers: [SocketService],
@@ -15,10 +16,12 @@ import { NgbOffcanvas } from '@ng-bootstrap/ng-bootstrap';
   styleUrls: ['./pyspel.component.css']
 })
 export class PyspelComponent implements OnInit {
-[x: string]: any;
 
 
 
+
+  //the available editor themes sorted by letter
+  public editorThemes = Array.from(editorThemes.keys()).sort()
   public showAtoms = true;
   public showOutput = true
 
@@ -29,13 +32,13 @@ export class PyspelComponent implements OnInit {
 
   isRunning: Boolean = false;
   atomSearch = ""
-  pipRequest: PipRequest = {args: [],command: PipCommand.FREEZE}
+  pipRequest: PipRequest = {args: [],command: PipCommand.INSTALL}
 
   sandboxInfo?: SandboxInfo
 
   sandboxEmail?: string
 
-  constructor(private offcanvasService: NgbOffcanvas,@Host() public socketService: SocketService,private _location: Location,public router : Router,public route: ActivatedRoute) {
+  constructor(private offcanvasService: NgbOffcanvas,@Host() public socketService: SocketService,private _location: Location,public router : Router,public route: ActivatedRoute, public settingsService: SettingsService) {
     this.socketService.stoutFromSocket.subscribe(data => {
       this.log += `${data}`
     })
@@ -130,6 +133,14 @@ export class PyspelComponent implements OnInit {
 			},
 		);
 	}
+
+
+  updateTabSize(value: string)
+  {
+    const tabSize = Number.parseInt(value)
+    this.settingsService.updateSize(tabSize)
+  }
+
 
 
 

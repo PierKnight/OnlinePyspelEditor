@@ -1,4 +1,4 @@
-<nav style="z-index: 10;" class="p-1 navbar navbar-expand-lg navbar-light bg-light">
+<nav style="z-index: 10;" class="p-1 navbar navbar-expand-lg">
   <a class="navbar-brand" href="#">Pyspel Editor</a>
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
@@ -13,6 +13,9 @@
       </li>
     </ul>
   </div>
+  <div class="navbar-nav flex-row flex-wrap ms-md-auto">
+    <button class="btn btn-secondary" (click)="settingsService.switchMode()">{{settingsService.modeValue}}</button>
+  </div>
 </nav>
 
 <section class="toasts">
@@ -22,5 +25,6 @@
     (hiddden)="toastService.remove(toast)"
   >{{toast.body}}</ngb-toast>
 </section>
+
 
 <router-outlet></router-outlet>

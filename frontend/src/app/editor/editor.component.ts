@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import {basicSetup} from "codemirror";
-import {amy} from "thememirror";
+import {amy, birdsOfParadise} from "thememirror";
 import {globalCompletion, localCompletionSource, pythonLanguage} from "@codemirror/lang-python";
 import {LanguageSupport, syntaxTree, indentUnit} from "@codemirror/language"
 import {CompletionContext, snippetCompletion as snip} from "@codemirror/autocomplete"
@@ -12,6 +12,8 @@ import {indentWithTab} from "@codemirror/commands"
 import {SyntaxNode, SyntaxNodeRef} from "@lezer/common";
 import { SocketService } from '../service/code/socket.service';
 import { CodeDiagnostic } from '../model/model';
+import { EditorTheme, SettingsService, editorThemes } from '../service/settings/settings.service';
+
 
 @Component({
   selector: 'app-editor',
@@ -24,11 +26,12 @@ export class EditorComponent implements OnInit {
 
 
   currentAtoms : Atom[] = []
-
-
-  @Input() prova: string = ""
-
   diagnostics: CodeDiagnostic[] = []
+
+  //compartments
+  linterCompartment = new Compartment()
+  tabSizeCompartment = new Compartment()
+  editorThemeCompartment = new Compartment()
 
   //LINTERS
   getCodeLinter()
@@ -41,9 +44,6 @@ export class EditorComponent implements OnInit {
       });
     })
   }
-
-  linterCompartment = new Compartment()
-
   regexpLinter = linter(view => {
     return this.syntaxErrors.map<Diagnostic>(error => {
         return {from: error.from,to: error.to,severity: "error",message: error.error}
@@ -52,8 +52,7 @@ export class EditorComponent implements OnInit {
   syntaxErrors : {error: string,from: number,to: number}[] = []
 
 
-
-  constructor (public socketService: SocketService)
+  constructor (public socketService: SocketService, private settingsService: SettingsService)
   {
     socketService.sandboxCode.subscribe(code => {
       this.editor!.dispatch(this.editor!.state.update({changes: {from: 0,insert: code}}))
@@ -62,6 +61,13 @@ export class EditorComponent implements OnInit {
       this.diagnostics = diagnostics
       this.editor?.dispatch({effects: this.linterCompartment.reconfigure(this.getCodeLinter())})
     })
+    this.settingsService.tabSize.subscribe(size => {
+      this.editor?.dispatch({effects: this.tabSizeCompartment.reconfigure(indentUnit.of(" ".repeat(size)))});
+    })
+    this.settingsService.editorTheme.subscribe(theme => {
+      this.editor?.dispatch({effects: this.editorThemeCompartment.reconfigure(editorThemes.get(theme))});
+    })
+
   }
 
   ngOnInit(): void {
@@ -94,8 +100,10 @@ export class EditorComponent implements OnInit {
             })
         }
     }
+
     const editorState = EditorState.create({
-        extensions: [basicSetup,amy,
+        extensions: [basicSetup,
+            this.editorThemeCompartment.of(editorThemes.get(this.settingsService.editorThemeValue)),
             new LanguageSupport(pythonLanguage, [
                 pythonLanguage.data.of({autocomplete: globalCompletion}),
                 pythonLanguage.data.of({autocomplete: localCompletionSource}),
@@ -105,9 +113,11 @@ export class EditorComponent implements OnInit {
                 updateOnChange
             ]),
             this.regexpLinter,
-            this.linterCompartment.of(this.getCodeLinter())
+            this.linterCompartment.of(this.getCodeLinter()),
+            this.tabSizeCompartment.of(indentUnit.of(" ".repeat(this.settingsService.tabSizeValue)))
           ]
     })
+
 
     this.editor = new EditorView({
         state: editorState,
@@ -206,6 +216,7 @@ export function stringFromNode(state: EditorState, node?: SyntaxNode | null): St
 
   return state.sliceDoc(node?.from,node?.to)
 }
+
 
 export const baseTypes = ["int","str","any"]
 
