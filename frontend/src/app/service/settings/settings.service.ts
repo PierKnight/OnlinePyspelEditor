@@ -5,6 +5,9 @@ import {materialLight} from '@ddietr/codemirror-themes/material-light'
 import {materialDark} from '@ddietr/codemirror-themes/material-dark'
 import {githubLight} from '@ddietr/codemirror-themes/github-light'
 import {githubDark} from '@ddietr/codemirror-themes/github-dark'
+import {tokyoNight} from '@ddietr/codemirror-themes/tokyo-night'
+import {tokyoNightStorm} from '@ddietr/codemirror-themes/tokyo-night-storm'
+import {tokyoNightDay} from '@ddietr/codemirror-themes/tokyo-night-day'
 
 @Injectable({
   providedIn: 'root'
@@ -83,7 +86,10 @@ export type EditorTheme =
   "materialLight" |
   "materialDark" |
   "githubLight" |
-  "githubDark"
+  "githubDark" |
+  "tokyoNight" |
+  "tokyoNightStorm" |
+  "tokyoNightDay"
 
 
 export const editorThemes = new Map<EditorTheme,any>([
@@ -94,5 +100,8 @@ export const editorThemes = new Map<EditorTheme,any>([
   ["ayuLight", ayuLight],
   ["dracula", dracula],
   ["githubLight", githubLight],
-  ["githubDark", githubDark]
+  ["githubDark", githubDark],
+  ["tokyoNight", tokyoNight],
+  ["tokyoNightStorm", tokyoNightStorm],
+  ["tokyoNightDay",tokyoNightDay]
 ]);

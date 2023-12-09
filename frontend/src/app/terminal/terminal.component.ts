@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { ApptoastService } from '../service/toast/apptoast.service';
 
 @Component({
   selector: 'app-terminal',
@@ -7,18 +8,29 @@ import { Component, Input } from '@angular/core';
 })
 export class TerminalComponent {
 
-  @Input() strings : string = "";
+  log : string = "";
 
 
-
-  clearTerminal()
+  constructor(private toastService: ApptoastService)
   {
-    this.strings = ""
+
   }
 
 
+  clear()
+  {
+    this.log = ""
+  }
+
+
+  appendString(string: string)
+  {
+    this.log += string
+  }
+
   copyToClipboard()
   {
-    navigator.clipboard.writeText(this.strings);
+    navigator.clipboard.writeText(this.log);
+    this.toastService.success("Copied terminal content in clipboard")
   }
 }

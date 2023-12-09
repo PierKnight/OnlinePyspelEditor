@@ -8,6 +8,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NgbOffcanvas } from '@ng-bootstrap/ng-bootstrap';
 import { SettingsService } from '../service/settings/settings.service';
 import { editorThemes } from '../service/settings/settings.service';
+import { TerminalComponent } from '../terminal/terminal.component';
 
 @Component({
   providers: [SocketService],
@@ -26,9 +27,8 @@ export class PyspelComponent implements OnInit {
   public showOutput = true
 
 
-  log: string = ""
-
   @ViewChild("editorElement") editorComponent !: EditorComponent;
+  @ViewChild("terminal") terminal !: TerminalComponent;
 
   isRunning: Boolean = false;
   atomSearch = ""
@@ -40,7 +40,7 @@ export class PyspelComponent implements OnInit {
 
   constructor(private offcanvasService: NgbOffcanvas,@Host() public socketService: SocketService,private _location: Location,public router : Router,public route: ActivatedRoute, public settingsService: SettingsService) {
     this.socketService.stoutFromSocket.subscribe(data => {
-      this.log += `${data}`
+      this.terminal.appendString(`${data}`)
     })
 
     this.socketService.sandboxInfo.subscribe(data => {
@@ -78,7 +78,7 @@ export class PyspelComponent implements OnInit {
     const sourceCode = this.editorComponent.editor.state.doc.toString();
     if(this.socketService.runJob<any>("codeRequest", {sourceCode: sourceCode},(res) => {}))
     {
-      this.log = ""
+      this.terminal.clear()
       this.showOutput = true
     }
   }
@@ -92,7 +92,7 @@ export class PyspelComponent implements OnInit {
       //  this.log = res.message
     })
 
-    this.log = ""
+    this.terminal.clear()
     this.showOutput = true
 
   }

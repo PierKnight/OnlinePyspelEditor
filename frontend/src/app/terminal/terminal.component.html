@@ -1,5 +1,5 @@
-<div style="height: 20%;">
-  <button (click)="clearTerminal()">CLEAR</button>
-  <button (click)="copyToClipboard()">COPY</button>
-  <div class="terminal">{{strings}}</div>
+<div class=" p-1 d-flex gap-1 align-items-center">
+  <button class="p-1 btn btn-secondary" (click)="clear()">Clear</button>
+  <button class="p-1  btn btn-secondary" (click)="copyToClipboard()">Copy</button>
 </div>
+<div class="terminal">{{log}}</div>

@@ -10,8 +10,6 @@
     <button [disabled]="socketService.isTaskRunning" class="nav-item btn btn-success p-1" (click)="runCode()">Run</button>
     <button [disabled]="!socketService.isTaskRunning" class="nav-item btn btn-danger p-1" (click)="stopCode()">Stop</button>
     <button class="nav-item btn btn-secondary p-1" (click)="open(content)">Settings</button>
-    <li>
-    </li>
   </ul>
 
 
@@ -23,7 +21,7 @@
             <app-editor id="split1" #editorElement></app-editor>
           </as-split-area>
           <as-split-area class="p-1" minSize="20" [order]="2" [visible]="showAtoms" [size]="40">
-            <div class="d-flex mb-2">
+            <div class="d-flex mb-2 gap-1">
               <input placeholder="Filter by atom name" type="text" [(ngModel)]="atomSearch">
               <button class="btn btn-success" (click)="addNewAtom()">Add new atom</button>
             </div>
@@ -34,7 +32,7 @@
       </as-split>
     </as-split-area>
     <as-split-area *ngIf="showOutput">
-      <app-terminal [strings]="log"></app-terminal>
+      <app-terminal #terminal></app-terminal>
     </as-split-area>
   </as-split>
   </div>

@@ -137,7 +137,7 @@ export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,std
   -w ${WALL_TIME} \
   -m ${MAX_MEM} \
   -k ${MAX_STACK_LIMIT} \
-  -p  ${MAX_MAX_PROCESSES_AND_OR_THREADS} \
+  -p ${MAX_MAX_PROCESSES_AND_OR_THREADS} \
   -b ${sandbox.info.sandboxId} --cg --dir=/etc --share-net --run -- ${PYTHON_PATH} -u main.py`
   return executeProcess(command,(data) => {
     bytesPerSecond += Buffer.byteLength(data)
