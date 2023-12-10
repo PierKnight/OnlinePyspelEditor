@@ -33,6 +33,8 @@ export class EditorComponent implements OnInit {
   tabSizeCompartment = new Compartment()
   editorThemeCompartment = new Compartment()
 
+  isCodeWriting: boolean = false;
+
   //LINTERS
   getCodeLinter()
   {
@@ -67,6 +69,8 @@ export class EditorComponent implements OnInit {
     this.settingsService.editorTheme.subscribe(theme => {
       this.editor?.dispatch({effects: this.editorThemeCompartment.reconfigure(editorThemes.get(theme))});
     })
+
+    this.socketService.writing.subscribe(writing => this.isCodeWriting = writing)
 
   }
 

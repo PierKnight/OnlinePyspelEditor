@@ -1,1 +1,6 @@
-<section class="h-100" id="editor"></section>
+<section style="position: relative;" class="h-100" id="editor">
+  <img *ngIf="!isCodeWriting else spinner" src="assets/icons/circle-check-solid.svg" class="writingStatus">
+  <ng-template #spinner>
+    <div class="spinner-border writingStatus" role="status"></div>
+  </ng-template>
+</section>

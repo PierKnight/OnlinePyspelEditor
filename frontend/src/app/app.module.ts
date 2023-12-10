@@ -12,7 +12,7 @@ import { FieldComponent } from './field/field.component';
 import { CommandComponent } from './command/command.component';
 import { AppRoutingModule } from './app-routing.module';
 import { MainComponent } from './main.component';
-import { OrderModule } from 'ngx-order-pipe';
+
 @NgModule({
   imports: [
     NgbModule,

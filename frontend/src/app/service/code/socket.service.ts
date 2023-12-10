@@ -26,6 +26,9 @@ export class SocketService implements OnInit {
   private _codeDiagnostics: Subject<CodeDiagnostic[]> = new Subject<CodeDiagnostic[]>()
   codeDiagnostics = this._codeDiagnostics.asObservable()
 
+  private _isWriting: Subject<boolean> = new Subject<boolean>()
+  writing = this._isWriting.asObservable()
+
 
   private socket : Socket
   constructor(public toastService: ApptoastService,public route: ActivatedRoute) {
@@ -56,6 +59,10 @@ export class SocketService implements OnInit {
       this._sandboxInfo.next(status.sandboxInfo)
       this._sandboxCode.next(status.code)
 
+    })
+
+    this.socket.on("writingStatus",(writing: boolean) => {
+      this._isWriting.next(writing)
     })
 
 

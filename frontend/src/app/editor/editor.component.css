@@ -1,0 +1,9 @@
+.writingStatus
+{
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+}

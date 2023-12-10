@@ -214,13 +214,13 @@ export async function makeSandboxTemporary(sandbox: SandboxSession) : Promise<Sa
  * In this way you don't send the code at every character typing
  * @param code the code submitted by the sandbox user
  */
-export async function handleNewSandboxCode(sandbox: SandboxSession,code: CodePosition)
+export async function handleNewSandboxCode(sandbox: SandboxSession,code: CodePosition,onWritingStatus: (writing: boolean) => void)
 {
   const startCode = sandbox.code.slice(0,code.from)
   const endCode = sandbox.code.slice(code.to)
   const result = startCode + code.value + endCode
   sandbox.code = result
-  sandbox.resetCodeWriting()
+  sandbox.resetCodeWriting(onWritingStatus)
   
 }
 
@@ -303,11 +303,16 @@ export class SandboxSession {
     this.code = code
     this.pyrightFunction = pyright
   }
-  resetCodeWriting()
+  resetCodeWriting(onWritingStatus: (writing: boolean) => void)
   {
+
+    if(!this.codeWritingJob)
+      onWritingStatus(true)
     clearTimeout(this.codeWritingJob)
     this.codeWritingJob = setTimeout(() => {
       this.writeToFile()
+      this.codeWritingJob = undefined
+      onWritingStatus(false)
     },SCRIPT_UPDATE_DELAY)
   }
  
@@ -315,6 +320,7 @@ export class SandboxSession {
   { 
     console.log(`WRITING TO FILE ${this.code}` )
     await fs.writeFile(getSandboxMainScript(this.info),this.code);  
+    
     this.pyrightProcess = executeProcess(`isolate -s -b ${this.info.sandboxId} -E HOME=/box -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" --cg -p --run -- /usr/local/bin/pyright --outputjson main.py`,(data) => {
       this.pyrightFunction(data)
     })

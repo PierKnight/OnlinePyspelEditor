@@ -84,7 +84,9 @@ export function init(server: HttpServer)
         })
 
         registerSocketChannel<CodePosition,RequestResponse<any>>(userSOcket,"sendCode", async (code) => {
-            await sandbox.handleNewSandboxCode(userSOcket.sandbox,code)
+            await sandbox.handleNewSandboxCode(userSOcket.sandbox,code, (writing) => {
+                userSOcket.emit("writingStatus",writing)
+            })
             return {isError: false,info: {}}
         })
         //socket.on("killJob", (data,callback) => {onKillJob(userSOcket, callback)})
@@ -116,7 +118,6 @@ function sendToStout(socket: UserSocket,data: string)
 function sendCodeCheckerDiagnostics(socket: Socket,data: string)
 {
 
-    console.log("CHECKER",data)
     try
     {
         const diagnostics = JSON.parse(data).generalDiagnostics as any[]
@@ -125,6 +126,8 @@ function sendCodeCheckerDiagnostics(socket: Socket,data: string)
         }))
     }
     catch(error){
+        
+        console.log("CHECKER",data)
         console.log("Code Checker Error",error)
     }
 }
