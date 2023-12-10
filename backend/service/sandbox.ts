@@ -6,7 +6,7 @@ import { CodePosition, PipCommand, PipRequest, SandboxInfo } from "../model"
 import * as database from "./database"
 import process, { send } from "process"
 import moment from "moment"
-import { ISOLATE_PATH, MAX_CPU_TIME_LIMIT, MAX_MAX_PROCESSES_AND_OR_THREADS, MAX_MEM, MAX_OUT_BYTES_PER_SECOND, MAX_STACK_LIMIT, PYRIGHT_PATH, PYTHON_PATH, SCRIPT_UPDATE_DELAY, WALL_TIME } from "./config"
+import { ISOLATE_PATH, MAX_CPU_TIME_LIMIT, MAX_MAX_PROCESSES_AND_OR_THREADS, MAX_MEM, MAX_OUT_BYTES_PER_SECOND, MAX_STACK_LIMIT, PIP_PATH, PYRIGHT_PATH, PYTHON_PATH, SCRIPT_UPDATE_DELAY, WALL_TIME } from "./config"
 
 
 
@@ -157,7 +157,7 @@ export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,std
 export function runPipCommand(sandbox : SandboxSession,pipRequest: PipRequest,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   const confirmAttribute = pipRequest.command === PipCommand.UNINSTALL ? "-y" : ""
-  return executeProcess(`isolate --cg -s -b ${sandbox.info.sandboxId} -E HOME="/box" -E PATH="/box/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" -d /usr -d /etc -p --share-net --run -- /usr/bin/pip`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
+  return executeProcess(`isolate --cg -s -b ${sandbox.info.sandboxId} -E HOME="/box" -E PATH="/box/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" -d /usr -d /etc -p --share-net --run -- ${PIP_PATH}`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
 }
 
 
@@ -290,7 +290,6 @@ export class ProcessJob implements Job
 export class SandboxSession {
   info: SandboxInfo
   private currentJob?: Job 
-  private pyrightProcess?: ChildProcessWithoutNullStreams
   code: string
 
   codeWritingJob?: any
@@ -321,7 +320,7 @@ export class SandboxSession {
     console.log(`WRITING TO FILE ${this.code}` )
     await fs.writeFile(getSandboxMainScript(this.info),this.code);  
     
-    this.pyrightProcess = executeProcess(`isolate -s -b ${this.info.sandboxId} -E HOME=/box -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" --cg -p --run -- /usr/local/bin/pyright --outputjson main.py`,(data) => {
+    executeProcess(`isolate -s -b ${this.info.sandboxId} -E HOME=/box -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" --cg -p --run -- ${PYRIGHT_PATH} --outputjson main.py`,(data) => {
       this.pyrightFunction(data)
     })
 

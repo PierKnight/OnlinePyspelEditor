@@ -13,7 +13,7 @@ export const MAX_OUT_BYTES_PER_SECOND : number = getConfigNumber("MAX_OUT_BYTES_
 
 //Python interpreter path used inside sandbox
 export const PYTHON_PATH = process.env.PYTHON_PATH || "/usr/bin/python3"
-
+export const PIP_PATH = process.env.PIP_PATH || "/usr/local/bin/pip"
 export const PYRIGHT_PATH = process.env.PYRIGHT_PATH || "/usr/local/bin/pyright"
 
 //Folder in which run sandboxes

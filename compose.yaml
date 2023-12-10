@@ -2,10 +2,12 @@ services:
   backend:
     build:
       context: ./backend
-    environment:
-      NODE_ENV: production
+      
     env_file:
       - ./backend/.env
+    environment:
+      NODE_ENV: production
+      PIP_PATH: /usr/bin/pip
     ports:
       - 5000:5000
     privileged: true
