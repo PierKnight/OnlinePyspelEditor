@@ -157,7 +157,7 @@ export function runSandboxCode(sandbox : SandboxSession, sourceCode : string,std
 export function runPipCommand(sandbox : SandboxSession,pipRequest: PipRequest,stdout: (data: string) => void,stop: (code?: number) => void) : ChildProcessWithoutNullStreams
 {
   const confirmAttribute = pipRequest.command === PipCommand.UNINSTALL ? "-y" : ""
-  return executeProcess(`isolate --cg -s -b ${sandbox.info.sandboxId} -E HOME="/box" -E PATH="/box/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" -d /usr -d /etc -p --share-net --run -- ${PIP_PATH}`, stdout,stop,[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
+  return executeProcess(`isolate --cg -s -b ${sandbox.info.sandboxId} -E HOME="/box" -E PATH="/box/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" -d /usr -d /etc -p --share-net --run -- ${PIP_PATH}`, stdout,(r) => {sandbox.runTypeChecker(); stop(r)},[pipRequest.command.toString(),confirmAttribute, ...pipRequest.args])
 }
 
 
@@ -319,11 +319,14 @@ export class SandboxSession {
   { 
     console.log(`WRITING TO FILE ${this.code}` )
     await fs.writeFile(getSandboxMainScript(this.info),this.code);  
-    
-    executeProcess(`isolate -s -b ${this.info.sandboxId} -E HOME=/box -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" --cg -p --run -- ${PYRIGHT_PATH} --outputjson main.py`,(data) => {
+    this.runTypeChecker()
+  }
+
+  runTypeChecker()
+  {
+    executeProcess(`isolate -s -b ${this.info.sandboxId} -E HOME=/box -E PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" --cg -p -d /etc --run -- ${PYRIGHT_PATH} --outputjson`,(data) => {
       this.pyrightFunction(data)
     })
-
   }
 
   async scheduleJob(job : Job) : Promise<boolean>

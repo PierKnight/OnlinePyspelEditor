@@ -19,3 +19,12 @@ html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 
+
+
+* :not(.cm-line){
+  -webkit-transition: color,background-color 0.3s ease-in-out;
+  transition: color,background-color 0.3s ease-in-out;
+}
+
+
+

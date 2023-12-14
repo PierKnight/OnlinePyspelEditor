@@ -51,7 +51,6 @@ export class SocketService implements OnInit {
     })
 
     this.socket.on("codeDiagnostics",(diagnostics) => {
-      console.log(diagnostics)
       this._codeDiagnostics.next(diagnostics)
     })
 

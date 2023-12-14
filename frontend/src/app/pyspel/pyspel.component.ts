@@ -1,7 +1,7 @@
 import {Component, Host, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {SocketService} from "../service/code/socket.service";
 import { EditorComponent } from '../editor/editor.component';
-import { Atom, BaseAtom } from '../service/completions';
+import { Atom } from "../model/model";
 import { PipCommand, PipRequest, SandboxInfo } from '../model/model';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -119,7 +119,7 @@ export class PyspelComponent implements OnInit {
     if(this.atomSearch.length === 0)
       return atoms
     const regexp = new RegExp(this.atomSearch,"i")
-    return this.editorComponent.currentAtoms.filter(atom => regexp.test(atom.name as string))
+    return this.editorComponent.currentAtoms.filter(atom => regexp.test(atom.name.name))
 
   }
 

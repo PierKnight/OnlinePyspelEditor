@@ -8,10 +8,10 @@ import { AngularSplitModule } from 'angular-split';
 import { TerminalComponent } from './terminal/terminal.component';
 import { AtomComponent } from './atom/atom.component';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { FieldComponent } from './field/field.component';
 import { CommandComponent } from './command/command.component';
 import { AppRoutingModule } from './app-routing.module';
 import { MainComponent } from './main.component';
+import { AboutComponent } from './about/about.component';
 
 @NgModule({
   imports: [
@@ -30,8 +30,8 @@ import { MainComponent } from './main.component';
     EditorComponent,
     TerminalComponent,
     AtomComponent,
-    FieldComponent,
-    CommandComponent
+    CommandComponent,
+    AboutComponent
   ],
   bootstrap: [MainComponent],
 })

@@ -1,3 +1,4 @@
+import {SyntaxNode} from "@lezer/common";
 
 export interface RequestResponse<T>
 {
@@ -87,3 +88,32 @@ export interface CodeDiagnostic
         end: DiagnosticCodePosition
     }
 }
+
+export interface NodeInfo
+{
+  name: string
+  from: number
+  to: number
+}
+
+export class Atom{
+  fields: Map<string, string>;
+  name: NodeInfo;
+  node: NodeInfo;
+
+  constructor(name: NodeInfo, fields: Map<string, string>, node: NodeInfo) {
+    this.name = name;
+    this.fields = fields;
+    this.node = node;
+  }
+
+  getTemplate(): string {
+    return `${this.name.name}(${Array.from(this.fields.entries()).map(value => `${value[0]}=\${${value[1]}}`).join(",")})`;
+  }
+
+  getDetail() {
+    return `(${Array.from(this.fields.entries()).map(value => `${value[0]}: ${value[1]}`).join(",")})`;
+  }
+
+}
+

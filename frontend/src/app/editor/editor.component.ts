@@ -7,12 +7,14 @@ import {CompletionContext, snippetCompletion as snip} from "@codemirror/autocomp
 import {EditorView, keymap} from "@codemirror/view"
 import {EditorState,Compartment} from "@codemirror/state"
 import {Diagnostic, linter} from "@codemirror/lint"
-import {arrayComp, Atom, BaseAtom} from "../service/completions";
+import {arrayComp} from "../service/completions";
+import { Atom } from "../model/model";
 import {indentWithTab} from "@codemirror/commands"
 import {SyntaxNode, SyntaxNodeRef} from "@lezer/common";
 import { SocketService } from '../service/code/socket.service';
 import { CodeDiagnostic } from '../model/model';
 import { EditorTheme, SettingsService, editorThemes } from '../service/settings/settings.service';
+import { endWith } from 'rxjs';
 
 
 @Component({
@@ -41,12 +43,12 @@ export class EditorComponent implements OnInit {
     return linter(view => {
       return this.diagnostics.map<Diagnostic>(diagnostic => {
         const from = view.state.doc.line(diagnostic.range.start.line + 1).from + diagnostic.range.start.character
-        const to = view.state.doc.line(diagnostic.range.end.line + 1).from + diagnostic.range.end.character
+        const to = Math.min(view.state.doc.line(diagnostic.range.end.line + 1).from + diagnostic.range.end.character,view.state.doc.length)
         return {from: from,to: to,severity: diagnostic.severity,message: diagnostic.message}
       });
     })
   }
-  regexpLinter = linter(view => {
+  syntaxLinter = linter(view => {
     return this.syntaxErrors.map<Diagnostic>(error => {
         return {from: error.from,to: error.to,severity: "error",message: error.error}
     });
@@ -78,8 +80,6 @@ export class EditorComponent implements OnInit {
     let updateOnChange = EditorView.updateListener.of(update => {
       if(update.docChanged) {
           update.changes.iterChanges((fromA,toA,fromB,toB,inserted) => {
-              //this.changes.push({from: fromA,to: toA,text: inserted.toString()})
-              console.log({fromA: fromA,toA: toA,fromB: fromB, toB: toB, text: inserted.toString()})
               this.socketService.sendEditorCode({from: fromA,to: toA,value: inserted.toString()})
           },true)
           this.onEditorUpdate(update.state)
@@ -96,7 +96,7 @@ export class EditorComponent implements OnInit {
             options: this.currentAtoms.map(atom => {
 
                 return snip( atom.getTemplate(), {
-                    label: `${atom.name}`,
+                    label: `${atom.name.name}`,
                     detail: atom.getDetail(),
                     type: "class",
                     boost: 99
@@ -116,7 +116,7 @@ export class EditorComponent implements OnInit {
                 keymap.of([indentWithTab]),
                 updateOnChange
             ]),
-            this.regexpLinter,
+            this.syntaxLinter,
             this.linterCompartment.of(this.getCodeLinter()),
             this.tabSizeCompartment.of(indentUnit.of(" ".repeat(this.settingsService.tabSizeValue)))
           ]
@@ -134,15 +134,29 @@ export class EditorComponent implements OnInit {
 
       this.currentAtoms = []
       this.syntaxErrors = []
+      let validAtomNames = ["atom"]
+      const topNode = syntaxTree(state).topNode
+      let currentNode = topNode.firstChild
 
-
-      let currentNode = syntaxTree(state).topNode.firstChild
+      //FIND ATOM IMPORTS
+      topNode.getChildren("ImportStatement").forEach(a => {
+        const asNode = a.getChild("as")
+        if(asNode && asNode?.prevSibling && asNode.nextSibling)
+        {
+          if(stringFromNode(state,asNode.prevSibling) == "atom")
+          {
+            const atomImport = stringFromNode(state,asNode.nextSibling)
+            if(atomImport.length > 0)
+              validAtomNames.push(atomImport)
+          }
+        }
+      })
       while(currentNode != null)
       {
-          const atom = this.checkAtom(state,currentNode);
-          if(atom)
-            this.currentAtoms.push(atom)
-          currentNode = currentNode.nextSibling
+        const atom = this.checkAtom(validAtomNames,state,currentNode);
+        if(atom)
+          this.currentAtoms.push(atom)
+        currentNode = currentNode.nextSibling
       }
 
   }
@@ -151,35 +165,38 @@ export class EditorComponent implements OnInit {
   {
     if(!this.editor) return;
 
-    const a = syntaxTree(this.editor.state).topNode.getChildren("ImportStatement").at(-1)
+    const lastImportStatement = syntaxTree(this.editor.state).topNode.getChildren("ImportStatement").at(-1)
 
-    const tab = " ".repeat(this.editor.state.tabSize - 2)
-    const newAtom = `\n@atom\nclass newAtom:\n${tab}field: any`
     const lastAtom = this.currentAtoms.at(-1)
-    let transaction = this.editor.state.update({changes: {from: lastAtom?.to || a?.node.to || 0, insert: newAtom}})
+    const tab = " ".repeat(this.editor.state.tabSize - 2)
+    const newAtom = `${lastImportStatement && !lastAtom ? "\n" : ""}@atom\nclass newAtom${this.currentAtoms.length}:\n${tab}field: any\n`
+    let transaction = this.editor.state.update({changes: {from: lastAtom?.node.to || lastImportStatement?.node.to || 0, insert: newAtom}})
     this.editor.dispatch(transaction)
   }
 
-
   isValidType(str: String)
   {
-      return baseTypes.find(type => type == str) != null || this.currentAtoms.find(atom => atom.name == str)
+      return baseTypes.find(type => type == str) != null || this.currentAtoms.find(atom => atom.name.name == str)
   }
 
-  checkAtom(state: EditorState,a : SyntaxNodeRef): Atom | null
+  checkAtom(atomNames: string[], state: EditorState,nodeToCheck : SyntaxNode): Atom | null
   {
-    if(a.name !== "DecoratedStatement")
+    if(nodeToCheck.name !== "DecoratedStatement")
       return null;
-    const decoratedNode = a.node.firstChild
+    const decoratedNode = nodeToCheck.node.firstChild
+
 
     if(decoratedNode && decoratedNode.name == "Decorator" && decoratedNode.node.nextSibling?.name == "ClassDefinition")
     {
         const classNode = decoratedNode.node.nextSibling
-        const decoratorNameNode = decoratedNode.getChild("VariableName")
-        const decoratorName = stringFromNode(state,decoratorNameNode)
-        if(decoratorName == "atom") {
+        const decoratorName = stringFromNode(state,decoratedNode).trim()
+
+        if(atomNames.find((val) => decoratorName.endsWith(val))) {
+
 
             const nameNode = classNode.getChild("VariableName")
+            if(!nameNode)
+              return null;
             const atomName = stringFromNode(state,nameNode)
             const fields = new Map()
             const assignments = classNode.getChild("Body")?.getChildren("AssignStatement")
@@ -207,13 +224,13 @@ export class EditorComponent implements OnInit {
                 return null
             }
 
-            return new BaseAtom(atomName, fields,a.from,classNode.to)
+            return new Atom({from: nameNode.from,to: nameNode.to,name: atomName}, fields,nodeToCheck)
         }
     }
     return null
   }
 }
-export function stringFromNode(state: EditorState, node?: SyntaxNode | null): String
+export function stringFromNode(state: EditorState, node?: SyntaxNode | null): string
 {
   if(node == null)
       return ""

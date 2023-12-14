@@ -8,14 +8,14 @@
       (click)="collapsed = ! collapsed"
       [attr.aria-expanded]="!collapsed"
       aria-controls="collapseExample">
-      {{atom.name}}
+      {{atom.name.name}}
     </button>
     <button class="btn btn-danger" (click)="removeAtom()">Remove</button>
   </section>
   <section class="p-1" #collapse="ngbCollapse" [(ngbCollapse)]="collapsed">
-    <input placeholder="insert atom name" id="atom-name" type="text" formControlName="name">
+    <input autocomplete="off" placeholder="insert atom name" id="atom-name" type="text" formControlName="name">
     <form class="ms-3 d-flex flex-row" *ngFor="let field of fields; trackBy: trackByMethod" [formGroup]="field" >
-        <input placeholder="Insert field name" id="first-name" type="text" formControlName="name">
+        <input  autocomplete="off" placeholder="Insert field name" id="first-name" type="text" formControlName="name">
 
         <div ngbDropdown class="d-inline-block">
           <button type="button" class="btn btn-secondary" id="dropdownBasic1" ngbDropdownToggle>

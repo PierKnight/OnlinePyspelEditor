@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
-import { Atom, BaseAtom } from '../service/completions';
+import { Atom } from "../model/model";
+import {SyntaxNode} from "@lezer/common";
 import { baseTypes } from '../editor/editor.component';
 import { FormGroup, FormControl, FormBuilder, Validators } from '@angular/forms';
 import { EditorView } from 'codemirror';
@@ -14,7 +15,7 @@ export class AtomComponent  implements OnChanges {
 
   @Input() atoms : Atom[] = []
 
-  @Input() atom: Atom = new BaseAtom("", new Map(),0,0)
+  @Input() atom: Atom = new Atom({name: "",from:0,to: 0}, new Map(),{name: "",from:0,to: 0})
 
   @Input() editorMode : boolean = false;
 
@@ -31,9 +32,6 @@ export class AtomComponent  implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if(!changes["atom"]) return
-
-
-    console.log("SHIT")
     this.atomForm = this.getGroup()
   }
 
@@ -41,7 +39,7 @@ export class AtomComponent  implements OnChanges {
   {
     this.fields = []
     const atomForm = new FormGroup({})
-    atomForm.addControl("name", new FormControl(this.atom.name,Validators.required))
+    atomForm.addControl("name", new FormControl(this.atom.name.name,Validators.required))
     this.atom.fields.forEach((value,key) => {
       const group = new FormGroup({
         name: new FormControl(key,Validators.required),
@@ -84,20 +82,16 @@ export class AtomComponent  implements OnChanges {
       this.writeOnEditor()
   }
 
-
-
-
-
   getTypes() : String[]
   {
     const types : String[] = [...baseTypes];
 
     for(let a of this.atoms)
     {
-      if(a.from === this.atom.from)
+      if(a.node.from === this.atom.node.from)
         break
       else
-        types.push(a.name)
+        types.push(a.name.name)
     }
 
     return types
@@ -117,7 +111,7 @@ export class AtomComponent  implements OnChanges {
   {
     if(!this.editor) return;
 
-    const transaction = this.editor.state.update({changes: {from: this.atom.from,to: this.atom.to, insert: ""}})
+    const transaction = this.editor.state.update({changes: {from: this.atom.node.from,to: this.atom.node.to, insert: ""}})
     this.editor.dispatch(transaction)
   }
 
@@ -128,13 +122,17 @@ export class AtomComponent  implements OnChanges {
 
   if(!this.editor || this.atomForm.invalid) return;
 
+    const atomName = this.atomForm.controls['name'].value
     const tab = " ".repeat(this.editor.state.tabSize - 2)
-    const prova = `@atom\nclass ${this.atomForm.controls['name'].value}:\n${tab}` + this.fields.filter(field => field.valid).map(field => `${field.controls["name"].value}: ${field.controls["type"].value}`).join(`\n${tab}`) + "\n"
-    console.log(prova)
+    const fieldsString = `\n${tab}` + this.fields.filter(field => field.valid).map(field => `${field.controls["name"].value}: ${field.controls["type"].value}`).join(`\n${tab}`) + "\n"
+    console.log(this.atom)
 
-    let transaction = this.editor.state.update({changes: {from: this.atom.from,to:this.atom.to, insert: prova}})
+    let transaction = this.editor.state.update(
+      {changes: {from: this.atom.name.from,to:this.atom.node.to, insert: `${atomName}:${fieldsString}`}},
+    )
     this.editor.dispatch(transaction)
   }
+
 
   trackByMethod(index:number, el:FormGroup)
   {
