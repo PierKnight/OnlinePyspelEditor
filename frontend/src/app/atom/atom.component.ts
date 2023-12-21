@@ -125,8 +125,7 @@ export class AtomComponent  implements OnChanges {
     const atomName = this.atomForm.controls['name'].value
     const tab = " ".repeat(this.editor.state.tabSize - 2)
     const fieldsString = `\n${tab}` + this.fields.filter(field => field.valid).map(field => `${field.controls["name"].value}: ${field.controls["type"].value}`).join(`\n${tab}`) + "\n"
-    console.log(this.atom)
-
+  
     let transaction = this.editor.state.update(
       {changes: {from: this.atom.name.from,to:this.atom.node.to, insert: `${atomName}:${fieldsString}`}},
     )

@@ -14,13 +14,13 @@ ADD https://github.com/ioi/isolate/archive/refs/tags/v1.10.1.tar.gz isolate.tar.
 RUN tar -oxzf isolate.tar.gz && make -C isolate-1.10.1 isolate
 
 ### STAGE 2: Run ###
-FROM node:alpine
+FROM python:3.10-alpine
 WORKDIR /usr/src/app
 COPY --from=build /usr/src/app/dist dist/
 COPY --from=build /usr/src/app/prisma prisma/
 COPY --from=isolate /usr/src/app/isolate-1.10.1/isolate /bin/isolate
 COPY isolate /usr/local/etc/isolate
-RUN apk add clingo && apk add libcap-dev && apk add python3 && apk add py3-pip && pip install pyspel && npm install -g pyright 
+RUN apk add --update nodejs npm && apk add clingo && apk add libcap-dev && pip install pyspel && npm install -g pyright 
 COPY package*.json .
 RUN npm install --only=production && npx prisma generate
 EXPOSE 5000
